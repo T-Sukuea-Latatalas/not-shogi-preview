@@ -5,21 +5,52 @@ import { Item } from './entities.js'; // 一括撃破時の安全なアイテム
 const DEBUG_SEQUENCE = 'debug';
 let inputQueue = [];
 
-// 1. ファイル読み込み時のコンソールログ出力（ヘルプメッセージ）
-console.log('%c[開発用プレビュー] デバッグツール起動完了', 'color: #00ff00; font-weight: bold;');
-console.log('--- デバッグショートカット一覧 ---');
-console.log('・d -> e -> b -> u -> g (順番に入力): 隠しデバッグ起動 (ステータス極限化)');
-console.log('・G キー: 無敵モードの切り替え (トグル)');
-console.log('・K キー: 盤上の全敵を撃破 (スコア獲得 ＆ リソースの完全解放)');
-console.log('・L キー: ステージを即時クリア');
-console.log('・P キー: ステータスの個別数値変更');
-console.log('・F キー: 敵の動作一時停止の切り替え (トグル)');
-console.log('・C キー: クリエイティブモード (自由移動) の切り替え (トグル)');
-console.log('          ※有効時：Spaceキーで上昇、Cキーで下降など');
-console.log('----------------------------------');
+/**
+ * 安全にグローバル関数を呼び出すためのヘルパー
+ * 関数が存在しない場合でも例外を発生させず、安全にスキップ（または代替動作）します
+ */
+function safeCall(funcName, ...args) {
+    if (typeof window[funcName] === 'function') {
+        try {
+            return window[funcName](...args);
+        } catch (err) {
+            console.error(`[Debug] window.${funcName} の実行中にエラーが発生しました:`, err);
+        }
+    } else {
+        console.warn(`[Debug] window.${funcName} は現在利用できません（初期化前、または未定義）。`);
+    }
+    return null;
+}
 
-// キーボードイベントの登録
-window.addEventListener('keydown', (event) => {
+/**
+ * 画面へのメッセージ通知を安全に実行するヘルパー
+ * showMsg が未定義の場合は、開発用コンソールへの出力にフォールバックします
+ */
+function safeShowMsg(msg) {
+    if (typeof window.showMsg === 'function') {
+        try {
+            window.showMsg(msg);
+        } catch (err) {
+            console.error('[Debug] window.showMsg の実行中にエラーが発生しました:', err);
+        }
+    } else {
+        // UI側の通知機能が準備できていない場合の代替ログ出力
+        console.log(`%c[Debug Alert]: ${msg}`, 'color: #00ffff; font-weight: bold;');
+    }
+}
+
+/**
+ * UIの更新とプレイヤーデータのセーブを安全にまとめて呼び出す処理
+ */
+function safeUpdateAndSave() {
+    safeCall('updateUI');
+    safeCall('savePlayerData');
+}
+
+/**
+ * キーボードイベントのハンドラ
+ */
+function handleKeyDown(event) {
     // テキスト入力欄など、文字入力を伴う要素にフォーカスがある場合はデバッグ機能を無効化
     if (
         event.target.tagName === 'INPUT' || 
@@ -47,12 +78,9 @@ window.addEventListener('keydown', (event) => {
 
         STATE.isDebugMode = true;
 
-        // UI更新・セーブ・メッセージ表示（安全な実在判定）
-        if (typeof window.updateUI === 'function') window.updateUI();
-        if (typeof window.savePlayerData === 'function') window.savePlayerData();
-        if (typeof window.showMsg === 'function') {
-            window.showMsg('デバッグモード：有効化（ステータス最大）');
-        }
+        // UI更新、セーブ、メッセージ表示を安全に実行
+        safeUpdateAndSave();
+        safeShowMsg('デバッグモード：有効化（ステータス最大）');
 
         inputQueue = []; // 判定バッファをクリア
         return;
@@ -63,9 +91,7 @@ window.addEventListener('keydown', (event) => {
         STATE.isGodMode = !STATE.isGodMode;
 
         const msg = STATE.isGodMode ? '無敵：有効' : '無敵：無効';
-        if (typeof window.showMsg === 'function') {
-            window.showMsg(msg);
-        }
+        safeShowMsg(msg);
     }
 
     // --- 敵一括撃破（K キー） ---
@@ -129,21 +155,14 @@ window.addEventListener('keydown', (event) => {
             // 参照を破壊せずに敵リストを安全にクリア
             STATE.enemies.length = 0;
 
-            if (typeof window.updateUI === 'function') window.updateUI();
-            if (typeof window.savePlayerData === 'function') window.savePlayerData();
-            if (typeof window.showMsg === 'function') {
-                window.showMsg('敵を一括撃破しました（リソース解放完了）');
-            }
+            safeUpdateAndSave();
+            safeShowMsg('敵を一括撃破しました（リソース解放完了）');
         }
     }
 
     // --- ステージ即時クリア（L キー） ---
     if (event.key === 'l' || event.key === 'L') {
-        if (typeof window.showStageClear === 'function') {
-            window.showStageClear();
-        } else {
-            console.warn('[Debug] window.showStageClear が定義されていません。');
-        }
+        safeCall('showStageClear');
     }
 
     // --- ステータス個別変更機能（P キー） ---
@@ -168,11 +187,8 @@ window.addEventListener('keydown', (event) => {
                             PLAYER[exactStat] = value;
                         }
 
-                        if (typeof window.updateUI === 'function') window.updateUI();
-                        if (typeof window.savePlayerData === 'function') window.savePlayerData();
-                        if (typeof window.showMsg === 'function') {
-                            window.showMsg(`${exactStat} を ${value} に変更しました`);
-                        }
+                        safeUpdateAndSave();
+                        safeShowMsg(`${exactStat} を ${value} に変更しました`);
                     } else {
                         alert('無効な数値が入力されました。');
                     }
@@ -188,9 +204,7 @@ window.addEventListener('keydown', (event) => {
         STATE.isEnemiesFrozen = !STATE.isEnemiesFrozen;
 
         const msg = STATE.isEnemiesFrozen ? '敵の動作：一時停止' : '敵の動作：通常';
-        if (typeof window.showMsg === 'function') {
-            window.showMsg(msg);
-        }
+        safeShowMsg(msg);
     }
 
     // --- クリエイティブモード機能（C キー） ---
@@ -200,8 +214,37 @@ window.addEventListener('keydown', (event) => {
         const msg = STATE.isCreativeMode 
             ? 'クリエイティブモード：有効 (Spaceキーで上昇 / Cキーで下降)' 
             : 'クリエイティブモード：無効';
-        if (typeof window.showMsg === 'function') {
-            window.showMsg(msg);
-        }
+        safeShowMsg(msg);
     }
-});
+}
+
+/**
+ * デバッグ機能の初期化
+ */
+function initDebugTools() {
+    // ログ出力（ヘルプメッセージ）
+    console.log('%c[開発用プレビュー] デバッグツール起動完了', 'color: #00ff00; font-weight: bold;');
+    console.log('--- デバッグショートカット一覧 ---');
+    console.log('・d -> e -> b -> u -> g (順番に入力): 隠しデバッグ起動 (ステータス極限化)');
+    console.log('・G キー: 無敵モードの切り替え (トグル)');
+    console.log('・K キー: 盤上の全敵を撃破 (スコア獲得 ＆ リソースの完全解放)');
+    console.log('・L キー: ステージを即時クリア');
+    console.log('・P キー: ステータスの個別数値変更');
+    console.log('・F キー: 敵の動作一時停止の切り替え (トグル)');
+    console.log('・C キー: クリエイティブモード (自由移動) の切り替え (トグル)');
+    console.log('          ※有効時：Spaceキーで上昇、Cキーで下降など');
+    console.log('----------------------------------');
+
+    // キーボードイベントの登録
+    window.addEventListener('keydown', handleKeyDown);
+}
+
+/**
+ * ページの読み込み完了タイミングに応じた制御
+ * すでにロードが完了している場合は即座に初期化し、ロード中の場合は 'load' イベント後に実行します
+ */
+if (document.readyState === 'complete') {
+    initDebugTools();
+} else {
+    window.addEventListener('load', initDebugTools);
+}
