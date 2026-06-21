@@ -29,9 +29,11 @@ export const STATE = {
     currentStageIndex: 0,
     playerStunTime: 0,
     takeDamage: null,
-    // デバッグ・ゴッドモード関連
+    // デバッグ・ゴッドモード・拡張機能関連
     isDebugMode: false,
-    isGodMode: false
+    isGodMode: false,
+    isEnemiesFrozen: false,
+    isCreativeMode: false
 };
 
 // チェスの駒とヨット（Yacht）の定義を追加
