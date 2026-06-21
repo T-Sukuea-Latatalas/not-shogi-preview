@@ -826,7 +826,7 @@ function triggerBossIntro(boss) {
     introOverlay.style.zIndex = '9999';
     
     const bossName = (boss.type === 'ヨット' || boss.type === 'Yacht') ? 'ヨット' : 'キング';
-    introOverlay.innerHTML = `⚠️ 警告 ⚠️<br>盤上 of 支配者『${bossName}』出現`;
+    introOverlay.innerHTML = `⚠️ 警告 ⚠️<br>盤上の支配者『${bossName}』出現`;
     document.body.appendChild(introOverlay);
 
     const originalPos = new THREE.Vector3(0, GROUND_Y + EYE_HEIGHT, 0);
@@ -914,11 +914,11 @@ function startStage(stageData) {
                     bossEnemy = enemy;
                 }
             } catch (error) {
-                console.error(`エネミー [${type}] of 生成に失敗しました。ダミーで代用します:`, error);
+                console.error(`エネミー [${type}] の生成に失敗しました。ダミーで代用します:`, error);
                 try {
                     STATE.enemies.push(new DummyEnemy(type, enemyScale));
                 } catch (fallbackError) {
-                    console.error("フォールバック用ダミーエネミー of 生成にも失敗しました:", fallbackError);
+                    console.error("フォールバック用ダミーエネミーの生成にも失敗しました:", fallbackError);
                 }
             }
         }
@@ -1266,4 +1266,252 @@ function setupEvents() {
     window.addEventListener('contextmenu', e => e.preventDefault());
 
     document.addEventListener('pointerlockchange', () => {
-        if (
+        if (document.pointerLockElement !== document.body) {
+            if (STATE.stageActive && !STATE.isPaused && !STATE.isGameOver && !STATE.introActive) {
+                if (!inputHandler || !inputHandler.currentTouchMode) {
+                    pauseGame();
+                }
+            }
+        }
+    });
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    // ポーズ中またはゲームオーバー時でも、描画（レンダリング）は行う
+    if (STATE.isPaused || STATE.isGameOver) {
+        if (STATE.renderer && STATE.scene && STATE.camera) {
+            STATE.renderer.render(STATE.scene, STATE.camera);
+        }
+        return;
+    }
+
+    // イントロ演出中の更新処理
+    if (STATE.introActive) {
+        if (typeof STATE.introUpdate === 'function') {
+            STATE.introUpdate();
+        }
+        if (STATE.renderer && STATE.scene && STATE.camera) {
+            STATE.renderer.render(STATE.scene, STATE.camera);
+        }
+        return;
+    }
+
+    // ステージがアクティブでない場合は描画のみ行う
+    if (!STATE.stageActive) {
+        if (STATE.renderer && STATE.scene && STATE.camera) {
+            STATE.renderer.render(STATE.scene, STATE.camera);
+        }
+        return;
+    }
+
+    // --- 1. プレイヤーの移動制御 ---
+    const keys = (inputHandler && inputHandler.keys) ? inputHandler.keys : {};
+    const moveDir = new THREE.Vector3();
+
+    if (keys['KeyW'] || keys['ArrowUp']) moveDir.z -= 1;
+    if (keys['KeyS'] || keys['ArrowDown']) moveDir.z += 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) moveDir.x -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) moveDir.x += 1;
+    moveDir.normalize();
+
+    // モバイル用ジョイスティック入力の補正
+    if (joystickVector && (joystickVector.x !== 0 || joystickVector.y !== 0)) {
+        moveDir.set(joystickVector.x, 0, -joystickVector.y);
+    }
+
+    // カメラのY軸回転を考慮して移動ベクトルを適用
+    const camEuler = new THREE.Euler(0, STATE.camera.rotation.y, 0, 'YXZ');
+    moveDir.applyEuler(camEuler);
+
+    // ダッシュ補正
+    let currentSpeed = PLAYER.speed;
+    if (keys['ShiftLeft'] || keys['ShiftRight']) {
+        currentSpeed *= DASH_MULT;
+    }
+
+    STATE.camera.position.x += moveDir.x * currentSpeed;
+    STATE.camera.position.z += moveDir.z * currentSpeed;
+
+    // ボード境界制限（範囲外への侵入防止）
+    const limit = BOARD_SIZE / 2;
+    if (STATE.camera.position.x < -limit) STATE.camera.position.x = -limit;
+    if (STATE.camera.position.x > limit) STATE.camera.position.x = limit;
+    if (STATE.camera.position.z < -limit) STATE.camera.position.z = -limit;
+    if (STATE.camera.position.z > limit) STATE.camera.position.z = limit;
+
+    // ジャンプと重力の処理（落下と接地判定）
+    if ((keys['Space'] || keys['KeySpace']) && PLAYER.isGrounded) {
+        PLAYER.vy = JUMP_FORCE;
+        PLAYER.isGrounded = false;
+    }
+
+    if (!PLAYER.isGrounded) {
+        PLAYER.vy -= GRAVITY;
+        STATE.camera.position.y += PLAYER.vy;
+        
+        const floorY = GROUND_Y + EYE_HEIGHT;
+        if (STATE.camera.position.y <= floorY) {
+            STATE.camera.position.y = floorY;
+            PLAYER.vy = 0;
+            PLAYER.isGrounded = true;
+        }
+    }
+
+    // --- 2. プレイヤーの攻撃（自動連射） ---
+    if (PLAYER.isShooting) {
+        const now = Date.now();
+        if (now - PLAYER.lastShot >= PLAYER.fireRate) {
+            shoot();
+        }
+    }
+
+    // --- 3. 雲の動きのアップデート ---
+    if (STATE.clouds) {
+        STATE.clouds.forEach(cloud => {
+            cloud.position.x += cloud.userData.speed;
+            if (cloud.position.x > 350) {
+                cloud.position.x = -350;
+            }
+        });
+    }
+
+    // --- 4. 敵のアップデート ---
+    if (STATE.enemies) {
+        for (let i = STATE.enemies.length - 1; i >= 0; i--) {
+            const enemy = STATE.enemies[i];
+            if (!enemy) continue;
+
+            enemy.update(STATE.camera.position, STATE.enemies);
+
+            // 敵消滅時の処理
+            if (!enemy.alive) {
+                const points = (enemy.type === '王' || enemy.type === 'キング' || enemy.type === 'ヨット') ? 500 : 100;
+                STATE.score += points;
+
+                // 一定確率で回復・スコアアイテムをドロップ
+                if (Math.random() < 0.4) {
+                    const itemTypes = ['score', 'heal'];
+                    const randType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                    STATE.items.push(new Item(enemy.mesh.position.clone(), randType));
+                }
+
+                enemy.destroy();
+                STATE.enemies.splice(i, 1);
+                if (uiManager) uiManager.updateUI();
+            }
+        }
+    }
+
+    // --- 5. プレイヤー弾のアップデート ---
+    if (STATE.bullets) {
+        for (let i = STATE.bullets.length - 1; i >= 0; i--) {
+            const bullet = STATE.bullets[i];
+            if (!bullet) continue;
+
+            bullet.update();
+
+            let hit = false;
+            // 敵との衝突判定
+            if (STATE.enemies) {
+                for (let j = 0; j < STATE.enemies.length; j++) {
+                    const enemy = STATE.enemies[j];
+                    if (enemy && enemy.alive && enemy.mesh) {
+                        const dist = bullet.mesh.position.distanceTo(enemy.mesh.position);
+                        const colSize = (enemy.type === 'ヨット' || enemy.type === 'Yacht') ? 4.0 : 1.5;
+                        if (dist < colSize) {
+                            enemy.takeHit(PLAYER.power);
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 弾の寿命・射程外・衝突時のクリーンアップ
+            const outOfBounds = bullet.mesh.position.length() > 200;
+            if (hit || outOfBounds || bullet.lifeTime <= 0) {
+                if (bullet.mesh && STATE.scene) STATE.scene.remove(bullet.mesh);
+                STATE.bullets.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 6. 敵弾のアップデート ---
+    if (STATE.enemyBullets) {
+        for (let i = STATE.enemyBullets.length - 1; i >= 0; i--) {
+            const eBullet = STATE.enemyBullets[i];
+            if (!eBullet) continue;
+
+            eBullet.update();
+
+            let hit = false;
+            // プレイヤーとの衝突判定
+            const playerPos = STATE.camera.position.clone();
+            playerPos.y -= EYE_HEIGHT / 2; // あたり判定をキャラクターの腰付近に調整
+            const dist = eBullet.mesh.position.distanceTo(playerPos);
+
+            if (dist < 1.8) {
+                takeDamage(eBullet.power || 10);
+                hit = true;
+            }
+
+            const outOfBounds = eBullet.mesh.position.length() > 200;
+            if (hit || outOfBounds || eBullet.lifeTime <= 0) {
+                if (eBullet.mesh && STATE.scene) STATE.scene.remove(eBullet.mesh);
+                STATE.enemyBullets.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 7. ドロップアイテムのアップデートと接触判定 ---
+    if (STATE.items) {
+        for (let i = STATE.items.length - 1; i >= 0; i--) {
+            const item = STATE.items[i];
+            if (!item) continue;
+
+            item.update();
+
+            // プレイヤーとアイテムの衝突判定
+            const dist = item.mesh.position.distanceTo(STATE.camera.position);
+            if (dist < 2.5) {
+                if (item.type === 'heal') {
+                    PLAYER.hp = Math.min(PLAYER.maxHp, PLAYER.hp + 30);
+                    if (uiManager) uiManager.showMsg("回復薬を獲得");
+                } else if (item.type === 'score') {
+                    STATE.score += 200;
+                    if (uiManager) uiManager.showMsg("得点珠を獲得 (+200)");
+                }
+                if (uiManager) uiManager.updateUI();
+
+                if (item.mesh && STATE.scene) STATE.scene.remove(item.mesh);
+                STATE.items.splice(i, 1);
+            } else if (item.lifeTime <= 0) {
+                if (item.mesh && STATE.scene) STATE.scene.remove(item.mesh);
+                STATE.items.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 8. ステージクリア判定 ---
+    if (STATE.stageActive && !STATE.isGameOver && !STATE.introActive && STATE.enemies && STATE.enemies.length === 0) {
+        showStageClear();
+    }
+
+    // --- 9. レンダリングの実行 ---
+    if (STATE.renderer && STATE.scene && STATE.camera) {
+        STATE.renderer.render(STATE.scene, STATE.camera);
+    }
+}
+
+// デバッグ拡張スクリプト等から呼び出せるよう、関数やオブジェクトをグローバルに安全に公開
+window.updateUI = () => { if (uiManager) uiManager.updateUI(); };
+window.savePlayerData = savePlayerData;
+window.showStageClear = showStageClear;
+window.takeDamage = takeDamage;
+window.startStage = startStage;
+window.selectStage = selectStage;
+window.STATE = STATE;
+window.PLAYER = PLAYER;
+window.UPGRADE_COSTS = UPGRADE_COSTS;
