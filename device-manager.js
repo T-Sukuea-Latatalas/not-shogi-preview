@@ -35,22 +35,15 @@ export class DeviceManager {
                 }
             };
 
-            const isTouchSupported = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
+            // マウス環境、タッチ環境、ハイブリッド環境のいずれでも正常に発火するよう両イベントを登録
             if (btnPC) {
-                if (isTouchSupported) {
-                    btnPC.addEventListener('touchstart', (e) => handleSelect(false, e), { passive: false });
-                } else {
-                    btnPC.addEventListener('click', (e) => handleSelect(false, e));
-                }
+                btnPC.addEventListener('touchstart', (e) => handleSelect(false, e), { passive: false });
+                btnPC.addEventListener('click', (e) => handleSelect(false, e));
             }
 
             if (btnTouch) {
-                if (isTouchSupported) {
-                    btnTouch.addEventListener('touchstart', (e) => handleSelect(true, e), { passive: false });
-                } else {
-                    btnTouch.addEventListener('click', (e) => handleSelect(true, e));
-                }
+                btnTouch.addEventListener('touchstart', (e) => handleSelect(true, e), { passive: false });
+                btnTouch.addEventListener('click', (e) => handleSelect(true, e));
             }
         } catch (error) {
             console.error("DeviceManager initialization failed:", error);
