@@ -15,18 +15,21 @@ export class UIManager {
     }
 
     setupShopEvents() {
-        for (let i = 0; i < 4; i++) {
-            const itemEl = document.getElementById(`shop-item-${i}`);
-            if (itemEl) {
-                itemEl.addEventListener('click', () => {
-                    this.selectedShopIndex = i;
-                    this.updateShopHighlight();
-                    if (this.callbacks.onUpgradeByIndex) {
-                        this.callbacks.onUpgradeByIndex(i);
-                    }
-                });
-            }
-        }
+        const shopItems = document.querySelectorAll('.shop-item');
+        shopItems.forEach((itemEl) => {
+            // IDからインデックス数値を安全に抽出（例: "shop-item-2" -> 2）
+            const idMatch = itemEl.id.match(/shop-item-(\d+)/);
+            if (!idMatch) return;
+
+            const index = parseInt(idMatch[1], 10);
+            itemEl.addEventListener('click', () => {
+                this.selectedShopIndex = index;
+                this.updateShopHighlight();
+                if (this.callbacks.onUpgradeByIndex) {
+                    this.callbacks.onUpgradeByIndex(index);
+                }
+            });
+        });
     }
 
     toggleShop() {
@@ -44,10 +47,15 @@ export class UIManager {
 
     handleShopWheel(deltaY) {
         if (!STATE.shopOpen) return;
+        
+        // HTML上の実際の要素数に基づいて上限を決定（要素がなければデフォルトで4）
+        const shopItems = document.querySelectorAll('.shop-item');
+        const itemCount = shopItems.length || 4;
+
         if (deltaY > 0) {
-            this.selectedShopIndex = (this.selectedShopIndex + 1) % 4;
+            this.selectedShopIndex = (this.selectedShopIndex + 1) % itemCount;
         } else if (deltaY < 0) {
-            this.selectedShopIndex = (this.selectedShopIndex - 1 + 4) % 4;
+            this.selectedShopIndex = (this.selectedShopIndex - 1 + itemCount) % itemCount;
         }
         this.updateShopHighlight();
     }
@@ -60,18 +68,25 @@ export class UIManager {
     }
 
     updateShopHighlight() {
-        for (let i = 0; i < 4; i++) {
-            const itemEl = document.getElementById(`shop-item-${i}`);
-            if (!itemEl) continue;
+        const shopItems = document.querySelectorAll('.shop-item');
+        
+        shopItems.forEach((itemEl) => {
+            // IDからインデックスを抽出して選択状態を判定
+            const idMatch = itemEl.id.match(/shop-item-(\d+)/);
+            if (!idMatch) return;
+
+            const index = parseInt(idMatch[1], 10);
+            const isSelected = (index === this.selectedShopIndex);
+
+            // selectedクラスの追加・削除を確実に切り替え
+            itemEl.classList.toggle('selected', isSelected);
+
+            // マーカー（矢印）の表示更新
             const markerEl = itemEl.querySelector('.shop-marker');
-            if (i === this.selectedShopIndex) {
-                itemEl.classList.add('selected');
-                if (markerEl) markerEl.innerText = '▶';
-            } else {
-                itemEl.classList.remove('selected');
-                if (markerEl) markerEl.innerText = '　';
+            if (markerEl) {
+                markerEl.innerText = isSelected ? '▶' : '　';
             }
-        }
+        });
     }
 
     updateUI() {
