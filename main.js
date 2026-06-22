@@ -43,15 +43,16 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
  * 各種マネージャーと連携させます。
  */
 function initGame() {
-    const skyColor = 0xf0f0f0;
-    const fogColor = 0xf0f0f0;
-    const sunColor = 0xfffcf3;
-    const sunIntensity = 1.3;
-    const ambientColor = 0xffffff;
-    const ambientIntensity = 0.8;
-    const celestialColor = 0xfffbe0;
-    const celestialPos = new THREE.Vector3(40, 200, 40);
-    const celestialRadius = 15;
+    // 幽玄で情緒ある和の黄昏（宵の口）を再現する色彩設計
+    const skyColor = 0x1a0d22;         // 幽玄な宵の空（深みのある和紫）
+    const fogColor = 0x1a0d22;         // 宵闇に溶け込む環境フォグ
+    const sunColor = 0xff6b35;         // 茜さす朱色の陽光
+    const sunIntensity = 1.5;          // 朱色の光を際立たせる強度
+    const ambientColor = 0x412245;     // 影を彩るほのかな藤色
+    const ambientIntensity = 0.7;      // 陰影に深みを残す環境光強度
+    const celestialColor = 0xd4af37;   // 宵闇に浮かぶ金色の月
+    const celestialPos = new THREE.Vector3(40, 150, -120);
+    const celestialRadius = 12;
 
     // プレイヤーの保存状態をロード
     loadPlayerData();
@@ -114,8 +115,8 @@ function initGame() {
     for (let i = 0; i < cloudCount; i++) {
         const cloudGroup = new THREE.Group();
         const partCount = 3 + Math.floor(Math.random() * 4);
-        const cloudColor = 0xffffff;
-        const cloudOpacity = 0.55;
+        const cloudColor = 0xfaafbe; // 茜雲や薄桜を思わせる情緒ある桜色
+        const cloudOpacity = 0.25;   // 宵闇に美しく透ける不透明度
 
         for (let j = 0; j < partCount; j++) {
             const rx = 5 + Math.random() * 8;
@@ -258,7 +259,7 @@ function initGame() {
 
     STATE.scene.add(STATE.boardGroup);
 
-    // リサイズ時の安全なプロジェクション更新
+    // リresize時の安全なプロジェクション更新
     window.addEventListener('resize', () => {
         if (STATE.camera && STATE.renderer) {
             STATE.camera.aspect = window.innerWidth / window.innerHeight;
@@ -513,7 +514,7 @@ function startPracticeStage(type) {
 }
 
 /**
- * 盤上支配者（王・キング・ヨット等）の出現時にカットシーンを走らせて警告を表示します。
+ * 盤上支配者（王・キング・ヨット等）の出現時に気品を兼ね備えた和風の演出と、迫力あるカメラワークを実行します。
  */
 function triggerBossIntro(boss) {
     STATE.introActive = true;
@@ -530,26 +531,60 @@ function triggerBossIntro(boss) {
     const introOverlay = document.createElement('div');
     introOverlay.id = 'boss-intro-overlay';
     introOverlay.style.position = 'absolute';
-    introOverlay.style.top = '50%';
-    introOverlay.style.left = '50%';
-    introOverlay.style.transform = 'translate(-50%, -50%)';
-    introOverlay.style.color = '#ae1f23';
-    introOverlay.style.fontSize = '34px';
-    introOverlay.style.fontWeight = 'bold';
-    introOverlay.style.fontFamily = 'serif';
-    introOverlay.style.textShadow = '0 0 10px rgba(174, 31, 35, 0.8), 2px 2px 4px #000';
+    introOverlay.style.top = '0';
+    introOverlay.style.left = '0';
+    introOverlay.style.width = '100%';
+    introOverlay.style.height = '100%';
+    introOverlay.style.display = 'flex';
+    introOverlay.style.flexDirection = 'column';
+    introOverlay.style.justifyContent = 'center';
+    introOverlay.style.alignItems = 'center';
+    introOverlay.style.background = 'radial-gradient(circle, rgba(174, 31, 35, 0.2) 0%, rgba(10, 5, 15, 0.95) 100%)';
     introOverlay.style.pointerEvents = 'none';
     introOverlay.style.zIndex = '9999';
+    introOverlay.style.opacity = '0';
+    introOverlay.style.transition = 'opacity 0.8s ease-in-out';
     
-    const bossName = (boss.type === 'ヨット' || boss.type === 'Yacht') ? 'ヨット' : 'キング';
-    introOverlay.innerHTML = `⚠️ 警告 ⚠️<br>盤上の支配者『${bossName}』出現`;
+    let displayName = '王将';
+    if (boss.type === 'キング' || boss.type === 'K') {
+        displayName = 'キング';
+    } else if (boss.type === 'ヨット' || boss.type === 'Yacht') {
+        displayName = 'ヨット';
+    } else if (boss.type === '王') {
+        displayName = '王将';
+    } else {
+        displayName = boss.type;
+    }
+
+    introOverlay.innerHTML = `
+        <div style="text-align: center; transform: scale(0.9); animation: bossFadeIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;">
+            <div style="font-size: 16px; color: #d4af37; letter-spacing: 0.6em; text-transform: uppercase; font-family: sans-serif; margin-bottom: 20px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);">SUDDEN ATTACK</div>
+            <div style="font-size: 42px; color: #ae1f23; font-weight: 900; font-family: 'Sawarabi Mincho', 'Noto Serif JP', '游明朝', 'Yu Mincho', serif; letter-spacing: 0.25em; text-shadow: 0 0 25px rgba(174, 31, 35, 1), 2px 2px 4px #000; border-top: 2px solid #ae1f23; border-bottom: 2px solid #ae1f23; padding: 25px 60px; background: rgba(10, 5, 15, 0.7); box-shadow: inset 0 0 30px rgba(174, 31, 35, 0.3); border-image: linear-gradient(to right, transparent, #ae1f23, transparent) 1;">
+                急襲 ── 盤上ノ支配者『${displayName}』顕現
+            </div>
+            <div style="font-size: 15px; color: #ffffff; letter-spacing: 0.9em; margin-top: 20px; opacity: 0.9; font-family: 'Sawarabi Mincho', 'Noto Serif JP', serif;">いざ、尋常に勝負せよ</div>
+        </div>
+        <style>
+            @keyframes bossFadeIn {
+                0% { transform: scale(0.8); filter: blur(10px); opacity: 0; }
+                50% { filter: blur(2px); }
+                100% { transform: scale(1); filter: blur(0); opacity: 1; }
+            }
+        </style>
+    `;
     document.body.appendChild(introOverlay);
 
+    // DOMに追加後、即座にフェードイン
+    requestAnimationFrame(() => {
+        introOverlay.style.opacity = '1';
+    });
+
+    // 迫力ある和風ズームイン演出カメラワーク
     const originalPos = new THREE.Vector3(0, GROUND_Y + EYE_HEIGHT, 0);
     const originalRotation = new THREE.Euler().copy(STATE.camera.rotation);
     
     const startTime = Date.now();
-    const duration = 3000; 
+    const duration = 4000; 
     
     STATE.introUpdate = () => {
         const elapsed = Date.now() - startTime;
@@ -557,13 +592,26 @@ function triggerBossIntro(boss) {
         
         if (boss && boss.mesh) {
             const bossPos = boss.mesh.position.clone();
-            const targetCamPos = new THREE.Vector3().lerpVectors(
-                originalPos, 
-                bossPos.clone().add(new THREE.Vector3(0, -2.0, 0)), 
-                progress * 0.45 
-            );
-            STATE.camera.position.copy(targetCamPos);
-            STATE.camera.lookAt(bossPos.x, bossPos.y + 1.5, bossPos.z);
+            
+            if (progress < 0.4) {
+                // 前半：ゆっくりと天（金色の月）を見上げる幽玄な動き
+                const subProg = progress / 0.4;
+                const lookTarget = new THREE.Vector3(0, 80, -60).lerp(new THREE.Vector3(bossPos.x, bossPos.y + 8, bossPos.z), subProg);
+                STATE.camera.position.copy(originalPos);
+                STATE.camera.lookAt(lookTarget);
+            } else {
+                // 後半：急激にボスの眼前に向かってカメラが迫るダイナミックなズーム
+                const subProg = (progress - 0.4) / 0.6;
+                const t = 1 - Math.pow(1 - subProg, 3); // Cubic Out イージング
+                
+                const zoomCamPos = new THREE.Vector3().lerpVectors(
+                    originalPos, 
+                    bossPos.clone().add(new THREE.Vector3(0, 3.5, 12)), 
+                    t * 0.8
+                );
+                STATE.camera.position.copy(zoomCamPos);
+                STATE.camera.lookAt(bossPos.x, bossPos.y + 1.2, bossPos.z);
+            }
         }
         
         if (progress >= 1.0) {
