@@ -3,16 +3,24 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS, PIECE_NAMES } from './constants.js';
 
 /**
+ * カラーコードが数値または不正な形式である場合に、
+ * Canvasコンテキストが正しく読み込める16進数文字列（例: "#e3c88d"）に変換・補正するヘルパー。
+ */
+function ensureColorString(color) {
+    if (typeof color === 'number') {
+        return '#' + color.toString(16).padStart(6, '0');
+    }
+    return color || '#ffffff';
+}
+
+/**
  * ジオメトリの属性を position, normal, uv のみにクリーンアップし、
  * mergeGeometries 時の属性競合やグループのエラーを防ぐヘルパー関数。
- * インデックス付きと非インデックス付きの不整合を避けるため、toNonIndexed() で統一します。
  */
 function prepareGeometry(geometry) {
-    // 1. すべてのジオメトリを非インデックス形式に統一
     const nonIndexedGeom = geometry.toNonIndexed();
-    geometry.dispose(); // 元のジオメトリをメモリから解放
+    geometry.dispose();
 
-    // 2. 必要な属性以外を削除（安全にループを処理するためキーを配列に変換）
     const validKeys = ['position', 'normal', 'uv'];
     const attributeKeys = Object.keys(nonIndexedGeom.attributes);
     for (const key of attributeKeys) {
@@ -29,16 +37,16 @@ function prepareGeometry(geometry) {
  */
 function createBaseGeometry(bottomRadius, topRadius, height) {
     const points = [];
-    points.push(new THREE.Vector2(0, 0)); // 底面中心
-    points.push(new THREE.Vector2(bottomRadius, 0)); // 底面エッジ
+    points.push(new THREE.Vector2(0, 0)); 
+    points.push(new THREE.Vector2(bottomRadius, 0)); 
     points.push(new THREE.Vector2(bottomRadius, height * 0.15));
-    points.push(new THREE.Vector2(bottomRadius * 0.85, height * 0.25)); // くびれ開始
-    points.push(new THREE.Vector2(bottomRadius * 0.55, height * 0.5));  // 最も細い部分
+    points.push(new THREE.Vector2(bottomRadius * 0.85, height * 0.25)); 
+    points.push(new THREE.Vector2(bottomRadius * 0.55, height * 0.5));  
     points.push(new THREE.Vector2(bottomRadius * 0.5, height * 0.75));
-    points.push(new THREE.Vector2(topRadius * 1.15, height * 0.88));   // 上部リング膨らみ
+    points.push(new THREE.Vector2(topRadius * 1.15, height * 0.88));   
     points.push(new THREE.Vector2(topRadius, height * 0.95));
     points.push(new THREE.Vector2(topRadius, height));
-    points.push(new THREE.Vector2(0, height)); // 上面中心
+    points.push(new THREE.Vector2(0, height)); 
 
     const geom = new THREE.LatheGeometry(points, 24);
     return prepareGeometry(geom);
@@ -53,28 +61,23 @@ function adjustScaleAndAlignment(geometry, targetHeight) {
     const box = geometry.boundingBox;
     const currentHeight = box.max.y - box.min.y;
     
-    // 指定の高さに合わせて一様スケール
     if (currentHeight > 0) {
         const scaleFactor = targetHeight / currentHeight;
         geometry.scale(scaleFactor, scaleFactor, scaleFactor);
     }
     
-    // 底面を Y = 0 に接地
     geometry.computeBoundingBox();
     const newBox = geometry.boundingBox;
     geometry.translate(0, -newBox.min.y, 0);
     
-    // X, Zの中心を原点 (0, 0) にアライメント
     const centerX = (newBox.max.x + newBox.min.x) / 2;
     const centerZ = (newBox.max.z + newBox.min.z) / 2;
     geometry.translate(-centerX, 0, -centerZ);
     
-    // 後続処理のために更新
     geometry.computeVertexNormals();
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
 
-    // グループ情報が存在しない場合のみ、マテリアル配列が正しく適用されるよう全体をカバーする単一のグループを追加
     if (!geometry.groups || geometry.groups.length === 0) {
         geometry.addGroup(0, geometry.getAttribute('position').count, 0);
     }
@@ -304,7 +307,6 @@ export const AssetFactory = {
     
     /**
      * 将棋盤や駒のベースとなる木目のキャンバステクスチャを生成。
-     * 背景色を本来の温かみのある伝統的な木色（#e3c88d）に復元しました。
      */
     createWoodCanvas(text, textColor = '#1a1a1a', isBoard = false) {
         const canvas = document.createElement('canvas'); 
@@ -312,11 +314,9 @@ export const AssetFactory = {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         
-        // 温かみのある伝統的な木色
-        ctx.fillStyle = COLORS.wood || '#e3c88d'; 
+        ctx.fillStyle = ensureColorString(COLORS.wood || '#e3c88d'); 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        // ベース色に調和する、少し濃いブラウンの木目線
         ctx.strokeStyle = '#b59659';
         for(let i=0; i<40; i++) { 
             ctx.lineWidth = Math.random() * 2 + 1.0; 
@@ -328,7 +328,6 @@ export const AssetFactory = {
         }
 
         if (isBoard) {
-            // 盤面の境界線。盤面を引き締めるはっきりとした漆黒に設定
             ctx.strokeStyle = '#1a1a1a';
             ctx.lineWidth = 4;
             const margin = 80;
@@ -360,18 +359,18 @@ export const AssetFactory = {
                 });
             });
         } else if (text) { 
-            ctx.fillStyle = textColor; 
+            ctx.fillStyle = ensureColorString(textColor); 
             ctx.textAlign = "center"; 
             ctx.textBaseline = "middle"; 
 
             if (text.length === 2) {
-                ctx.font = "bold 320px 'Yuji Syuku', 'Klee One', 'Yu Mincho', 'MS Mincho', serif"; 
+                ctx.font = "bold 320px sans-serif"; 
                 ctx.fillText(text[0], 512, 420); 
 
-                ctx.font = "bold 260px 'Yuji Syuku', 'Klee One', 'Yu Mincho', 'MS Mincho', serif"; 
+                ctx.font = "bold 260px sans-serif"; 
                 ctx.fillText(text[1], 512, 710); 
             } else {
-                ctx.font = "bold 460px 'Yuji Syuku', 'Klee One', 'Yu Mincho', 'MS Mincho', serif"; 
+                ctx.font = "bold 460px sans-serif"; 
                 ctx.fillText(text, 512, 540); 
             }
         }
@@ -379,19 +378,18 @@ export const AssetFactory = {
     },
 
     /**
-     * 駒の文字色を上品に識別できるよう調整します。
-     * 通常時は漆黒系、金将・王将・成駒は朱色や金色に設定。
+     * 駒のマテリアルを取得。
      */
     getMaterials(type) {
         const fullName = PIECE_NAMES[type] || type;
         
-        let textColor = '#1a1a1a'; // 通常は漆黒
+        let textColor = '#1a1a1a'; 
         if (type === '王' || type === '玉') {
-            textColor = '#d4af37'; // 王・玉は金色
+            textColor = ensureColorString(COLORS.gold || '#d4af37'); 
         } else if (type === '金' || type === '金将') {
-            textColor = '#ae1f23'; // 金は朱色
-        } else if (['と', '成香', '成桂', '成銀', '竜', '馬', '龍', '圭', '杏', '竜王', '竜馬'].includes(type) || type.includes('成')) {
-            textColor = '#ae1f23'; // 成駒は朱色
+            textColor = ensureColorString(COLORS.vermillion || '#ae1f23'); 
+        } else if (['と', '成香', '成桂', '成銀', '竜', '馬', '竜王', '竜馬'].includes(type) || type.includes('成')) {
+            textColor = ensureColorString(COLORS.vermillion || '#ae1f23'); 
         }
 
         const frontTex = this.createWoodCanvas(fullName, textColor);
@@ -405,7 +403,6 @@ export const AssetFactory = {
 
     /**
      * チェス駒用のキャンバステクスチャ生成。
-     * 背景色（ベースカラー）と文字色を受け取れるように拡張。
      */
     createChessCanvas(symbol, baseColor = '#151515', textColor = '#d4af37') {
         const canvas = document.createElement('canvas'); 
@@ -413,10 +410,9 @@ export const AssetFactory = {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         
-        ctx.fillStyle = baseColor; 
+        ctx.fillStyle = ensureColorString(baseColor); 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        // 漆塗りや朱塗りの高級感を表現する微細な筋目の追加
         const isDarkBase = baseColor === '#151515' || baseColor === '#181818';
         ctx.strokeStyle = isDarkBase ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)';
         for(let i=0; i<35; i++) { 
@@ -429,20 +425,17 @@ export const AssetFactory = {
         }
 
         if (symbol) { 
-            ctx.fillStyle = textColor; 
+            ctx.fillStyle = ensureColorString(textColor); 
             ctx.textAlign = "center"; 
             ctx.textBaseline = "middle"; 
-            ctx.font = "bold 550px 'Segoe UI Symbol', 'Apple Color Emoji', 'sans-serif'"; 
+            ctx.font = "bold 550px 'Segoe UI Symbol', sans-serif"; 
             ctx.fillText(symbol, 512, 512); 
         }
         return new THREE.CanvasTexture(canvas);
     },
 
     /**
-     * チェス駒のマテリアルを設定します。
-     * 明るい盤面上でも視認性の高い、黒漆（黒ベースに金泥シンボル）および
-     * 白漆（自然で美しい明るい木・白漆色ベースに墨色シンボル）に復元。
-     * ※ isWhite 引数を省略、または false の場合は黒漆、true の場合は白漆になります。
+     * チェス駒のマテリアルを取得します。
      */
     getChessMaterials(type, isWhite = false) {
         const symbols = {
@@ -455,15 +448,14 @@ export const AssetFactory = {
         };
         const symbol = symbols[type] || '♟';
         
-        // 白駒は「白漆」、黒駒は「黒漆」の重厚な和洋折衷配色
         const baseColor = isWhite ? '#fffefb' : '#151515';  
-        const textColor = isWhite ? '#1a1a1a' : '#d4af37';  
+        const textColor = isWhite ? '#1a1a1a' : ensureColorString(COLORS.gold || '#d4af37');  
         
         const frontTex = this.createChessCanvas(symbol, baseColor, textColor);
         const sideTex = this.createChessCanvas(null, baseColor, textColor);
 
         const roughnessValue = isWhite ? 0.2 : 0.15;
-        const metalnessValue = isWhite ? 0.4 : 0.8; // 黒漆は金属的な深い反射、白漆は程よい艶感
+        const metalnessValue = isWhite ? 0.4 : 0.8; 
 
         return [
             new THREE.MeshStandardMaterial({ 
@@ -487,14 +479,14 @@ export const AssetFactory = {
         canvas.width = 512; 
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#274221'; // 和の庭園に調和する深みと渋みのある深緑色
+        ctx.fillStyle = '#274221'; 
         ctx.fillRect(0, 0, 512, 512);
         
         for (let i = 0; i < 8000; i++) {
             const x = Math.random() * 512;
             const y = Math.random() * 512;
             const r = Math.random() * 4 + 1;
-            const green = Math.floor(Math.random() * 40) + 30; // 落ち着いた深緑の輝度範囲
+            const green = Math.floor(Math.random() * 40) + 30; 
             ctx.fillStyle = `rgb(${Math.floor(green * 0.45)}, ${green}, ${Math.floor(green * 0.25)})`;
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -508,15 +500,15 @@ export const AssetFactory = {
         canvas.width = 1024; 
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#dcd9cd'; // 現実の砂利や白砂らしい趣のある落ち着いた砂白色
+        ctx.fillStyle = '#dcd9cd'; 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        ctx.fillStyle = 'rgba(0,0,0,0.02)'; // ノイズを若干ソフトに
+        ctx.fillStyle = 'rgba(0,0,0,0.02)'; 
         for (let i = 0; i < 20000; i++) {
             ctx.fillRect(Math.random()*1024, Math.random()*1024, 2, 2);
         }
         
-        ctx.strokeStyle = 'rgba(0,0,0,0.04)'; // 砂紋の影をマイルドに
+        ctx.strokeStyle = 'rgba(0,0,0,0.04)'; 
         ctx.lineWidth = 4;
         for (let y = -50; y < 1074; y += 24) {
             ctx.beginPath();
@@ -548,7 +540,7 @@ export const AssetFactory = {
 };
 
 /**
- * 趣深く深みのある落ち着いた和の竹の緑色に復元。
+ * 竹の生成。
  */
 export function createBamboo() {
     const bamboo = new THREE.Group();
@@ -556,7 +548,6 @@ export function createBamboo() {
     const numSegments = 6 + Math.floor(Math.random() * 4); 
     const baseRadius = 0.25 + Math.random() * 0.1;
     
-    // 彩度を高め、輝度を抑えた重厚な緑色
     const bambooColor = new THREE.Color().setHSL(0.28 + Math.random() * 0.04, 0.45, 0.25 + Math.random() * 0.08);
     const material = new THREE.MeshStandardMaterial({
         color: bambooColor, roughness: 0.5, metalness: 0.1
@@ -587,7 +578,7 @@ export function createBamboo() {
 }
 
 /**
- * 枯山水の白砂に映える、本来の暗く重厚感のあるダークグレーの岩に復元。
+ * 石の生成。
  */
 export function createRock() {
     const size = 1.8 + Math.random() * 2.2;
@@ -601,7 +592,6 @@ export function createRock() {
     }
     geom.computeVertexNormals();
 
-    // 落ち着いたダークグレーの岩肌色
     const rockColor = new THREE.Color(0x444444).lerp(new THREE.Color(0x555555), Math.random() * 0.4);
     const mat = new THREE.MeshStandardMaterial({
         color: rockColor, roughness: 0.9, metalness: 0.0
@@ -616,13 +606,11 @@ export function createRock() {
 }
 
 /**
- * 趣のある暗めの石灯籠に復元。
+ * 石灯籠。
  */
 export function createLantern() {
     const lantern = new THREE.Group();
-    // 趣のある暗めの石肌
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.85 });
-    // 赤みを含んだ温かみのある伝統的な和の灯火色
     const lightMat = new THREE.MeshStandardMaterial({ 
         color: 0xfff0c0, emissive: 0xff7300, emissiveIntensity: 1.5 
     });
