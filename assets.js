@@ -304,7 +304,7 @@ export const AssetFactory = {
     
     /**
      * 将棋盤や駒のベースとなる木目のキャンバステクスチャを生成。
-     * 背景色を明るい白木（#f5f5f0）に、木目を淡い色（#e3e1d5）に変更しました。
+     * 背景色を本来の温かみのある伝統的な木色（#e3c88d）に復元しました。
      */
     createWoodCanvas(text, textColor = '#1a1a1a', isBoard = false) {
         const canvas = document.createElement('canvas'); 
@@ -312,12 +312,12 @@ export const AssetFactory = {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         
-        // 明るく上品な白木のベース色
-        ctx.fillStyle = '#f5f5f0'; 
+        // 温かみのある伝統的な木色
+        ctx.fillStyle = COLORS.wood || '#e3c88d'; 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        // 白木に調和する、薄く柔らかな木目線
-        ctx.strokeStyle = '#e3e1d5';
+        // ベース色に調和する、少し濃いブラウンの木目線
+        ctx.strokeStyle = '#b59659';
         for(let i=0; i<40; i++) { 
             ctx.lineWidth = Math.random() * 2 + 1.0; 
             let x = Math.random() * 1024; 
@@ -328,8 +328,8 @@ export const AssetFactory = {
         }
 
         if (isBoard) {
-            // 盤面の境界線。うるさくならないようにソフトな暗灰色に
-            ctx.strokeStyle = '#3a3a3a';
+            // 盤面の境界線。盤面を引き締めるはっきりとした漆黒に設定
+            ctx.strokeStyle = '#1a1a1a';
             ctx.lineWidth = 4;
             const margin = 80;
             const size = 1024 - margin * 2;
@@ -348,7 +348,7 @@ export const AssetFactory = {
             }
 
             const dotRadius = 10;
-            ctx.fillStyle = '#3a3a3a';
+            ctx.fillStyle = '#1a1a1a';
             const stars = [3, 6];
             stars.forEach(r => {
                 stars.forEach(c => {
@@ -441,8 +441,8 @@ export const AssetFactory = {
     /**
      * チェス駒のマテリアルを設定します。
      * 明るい盤面上でも視認性の高い、黒漆（黒ベースに金泥シンボル）および
-     * 朱塗り（朱ベースに白砂色シンボル）のコントラストの高い配色に変更。
-     * ※ isWhite 引数を省略、または false の場合は黒漆、true の場合は朱塗りになります。
+     * 白漆（自然で美しい明るい木・白漆色ベースに墨色シンボル）に復元。
+     * ※ isWhite 引数を省略、または false の場合は黒漆、true の場合は白漆になります。
      */
     getChessMaterials(type, isWhite = false) {
         const symbols = {
@@ -455,15 +455,15 @@ export const AssetFactory = {
         };
         const symbol = symbols[type] || '♟';
         
-        // 明るい盤面上でも明確に識別可能な配色（朱塗り vs 黒漆）
-        const baseColor = isWhite ? '#ae1f23' : '#151515';  // 白駒は「朱塗り」、黒駒は「黒漆」
-        const textColor = isWhite ? '#f5f5f0' : '#d4af37';  // 朱塗りには淡い白木色、黒漆には上品な金泥色
+        // 白駒は「白漆」、黒駒は「黒漆」の重厚な和洋折衷配色
+        const baseColor = isWhite ? '#fffefb' : '#151515';  
+        const textColor = isWhite ? '#1a1a1a' : '#d4af37';  
         
         const frontTex = this.createChessCanvas(symbol, baseColor, textColor);
         const sideTex = this.createChessCanvas(null, baseColor, textColor);
 
         const roughnessValue = isWhite ? 0.2 : 0.15;
-        const metalnessValue = isWhite ? 0.4 : 0.8; // 黒漆は金属的な深い反射、朱塗りは程よい艶感
+        const metalnessValue = isWhite ? 0.4 : 0.8; // 黒漆は金属的な深い反射、白漆は程よい艶感
 
         return [
             new THREE.MeshStandardMaterial({ 
@@ -487,14 +487,14 @@ export const AssetFactory = {
         canvas.width = 512; 
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#426b38'; // 明るい和風空間に合う、少し清涼感のあるモスグリーン
+        ctx.fillStyle = '#274221'; // 和の庭園に調和する深みと渋みのある深緑色
         ctx.fillRect(0, 0, 512, 512);
         
         for (let i = 0; i < 8000; i++) {
             const x = Math.random() * 512;
             const y = Math.random() * 512;
             const r = Math.random() * 4 + 1;
-            const green = Math.floor(Math.random() * 60) + 60; // やや輝度を上げ、くすみを軽減
+            const green = Math.floor(Math.random() * 40) + 30; // 落ち着いた深緑の輝度範囲
             ctx.fillStyle = `rgb(${Math.floor(green * 0.45)}, ${green}, ${Math.floor(green * 0.25)})`;
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -508,7 +508,7 @@ export const AssetFactory = {
         canvas.width = 1024; 
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#e5e1d5'; // 明るく清潔感のある白砂庭園のベース色
+        ctx.fillStyle = '#dcd9cd'; // 現実の砂利や白砂らしい趣のある落ち着いた砂白色
         ctx.fillRect(0, 0, 1024, 1024);
         
         ctx.fillStyle = 'rgba(0,0,0,0.02)'; // ノイズを若干ソフトに
@@ -548,7 +548,7 @@ export const AssetFactory = {
 };
 
 /**
- * 明るい白木や砂の空間に馴染むよう、清涼感のある若竹色（明るめの青竹色系）に変更。
+ * 趣深く深みのある落ち着いた和の竹の緑色に復元。
  */
 export function createBamboo() {
     const bamboo = new THREE.Group();
@@ -556,8 +556,8 @@ export function createBamboo() {
     const numSegments = 6 + Math.floor(Math.random() * 4); 
     const baseRadius = 0.25 + Math.random() * 0.1;
     
-    // 彩度を少し落とし、明るさを上げることで、清涼感のある若竹色（青竹色）に
-    const bambooColor = new THREE.Color().setHSL(0.32 + Math.random() * 0.04, 0.35, 0.45 + Math.random() * 0.08);
+    // 彩度を高め、輝度を抑えた重厚な緑色
+    const bambooColor = new THREE.Color().setHSL(0.28 + Math.random() * 0.04, 0.45, 0.25 + Math.random() * 0.08);
     const material = new THREE.MeshStandardMaterial({
         color: bambooColor, roughness: 0.5, metalness: 0.1
     });
@@ -587,7 +587,7 @@ export function createBamboo() {
 }
 
 /**
- * 枯山水の白砂に調和する、清潔感のある明るい御影石色のグレーに変更。
+ * 枯山水の白砂に映える、本来の暗く重厚感のあるダークグレーの岩に復元。
  */
 export function createRock() {
     const size = 1.8 + Math.random() * 2.2;
@@ -601,8 +601,8 @@ export function createRock() {
     }
     geom.computeVertexNormals();
 
-    // 暗い岩肌から、白砂に調和するウォームグレーの御影石風に変更
-    const rockColor = new THREE.Color(0xd2cfc5).lerp(new THREE.Color(0xb5b2aa), Math.random() * 0.4);
+    // 落ち着いたダークグレーの岩肌色
+    const rockColor = new THREE.Color(0x444444).lerp(new THREE.Color(0x555555), Math.random() * 0.4);
     const mat = new THREE.MeshStandardMaterial({
         color: rockColor, roughness: 0.9, metalness: 0.0
     });
@@ -616,15 +616,15 @@ export function createRock() {
 }
 
 /**
- * 清涼感のある明るい御影石の灯篭に変更。
+ * 趣のある暗めの石灯籠に復元。
  */
 export function createLantern() {
     const lantern = new THREE.Group();
-    // やや明るい御影石のカラー
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xdcd9d0, roughness: 0.85 });
-    // 灯りの発光色と強さを若干マイルドかつ温かみのあるものに調整
+    // 趣のある暗めの石肌
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.85 });
+    // 赤みを含んだ温かみのある伝統的な和の灯火色
     const lightMat = new THREE.MeshStandardMaterial({ 
-        color: 0xfff0c0, emissive: 0xffa834, emissiveIntensity: 1.5 
+        color: 0xfff0c0, emissive: 0xff7300, emissiveIntensity: 1.5 
     });
 
     const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), stoneMat);
@@ -662,7 +662,7 @@ export function createLantern() {
     jewel.scale.set(1, 1.3, 1); jewel.position.y = 3.53; jewel.castShadow = true;
     lantern.add(jewel);
 
-    const light = new THREE.PointLight(0xffb050, 1.2, 20);
+    const light = new THREE.PointLight(0xff8c00, 1.2, 20);
     light.position.set(0, 2.5, 0); light.castShadow = true; light.shadow.bias = -0.001;
     lantern.add(light);
 
