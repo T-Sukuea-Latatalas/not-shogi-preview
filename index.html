@@ -11,21 +11,18 @@
 
     <!-- 操作方法選択画面 -->
     <div id="device-select-screen">
-        <div class="deco-circle"></div>
         <div class="menu-inner" style="text-align: center;">
             <div class="washitsu-header">
                 <span class="sub-title">SELECT CONTROL</span>
-                <h1 class="miyabi-title" style="font-size: 4.5rem;">操作方法選択</h1>
-                <div class="kazarikei"></div>
+                <h1 class="miyabi-title" style="font-size: 3.5rem;">操作方法選択</h1>
             </div>
             <div class="clear-btn-group" style="flex-direction: column; gap: 20px; width: 100%; max-width: 320px; z-index: 10; margin-top: 30px;">
                 <button id="btn-select-pc" class="clear-btn next-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem;">キーボード・マウス</button>
-                <button id="btn-select-touch" class="clear-btn back-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem; border-color: #d4af37; color: #d4af37; background: rgba(20, 20, 20, 0.6);">タッチ操作 (スマホ・タブレット)</button>
+                <button id="btn-select-touch" class="clear-btn back-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem;">タッチ操作 (スマホ・タブレット)</button>
             </div>
         </div>
     </div>
 
-    <div id="washi-overlay"></div>
     <div id="damage-vignette"></div>
     
     <div id="ui-layer">
@@ -51,7 +48,7 @@
         
         <!-- ショップメニュー -->
         <div id="shop-menu">
-            <h2 style="text-align:center; margin-top:0; margin-bottom:15px; font-size:1.4rem;">御品書き</h2>
+            <h2 style="text-align:center; margin-top:0; margin-bottom:15px; font-size:1.4rem; color: #fff;">御品書き</h2>
             <div class="shop-item" id="shop-item-0">
                 <div><span class="shop-marker">　</span><span>腕力強化 (威力)</span></div> <span id="cost-power">500</span>
             </div>
@@ -64,7 +61,7 @@
             <div class="shop-item" id="shop-item-3">
                 <div><span class="shop-marker">　</span><span>強靭な魂 (体力)</span></div> <span id="cost-hp">600</span>
             </div>
-            <p id="shop-close-desc" style="font-size:11px; text-align:center; color:#444; margin-top:15px; margin-bottom:0; line-height:1.4;">
+            <p id="shop-close-desc" style="font-size:11px; text-align:center; color:#ccc; margin-top:15px; margin-bottom:0; line-height:1.4;">
                 [Tab]: 開閉<br>
                 [Wheel]: 選択 | [右Click]: 購入
             </p>
@@ -92,16 +89,14 @@
 
     <!-- タイトル画面 -->
     <div id="title-screen" style="display: none;">
-        <div class="deco-circle"></div>
         <div class="menu-inner" style="text-align: center;">
             <div class="washitsu-header">
                 <span class="sub-title">Not Shogi</span>
                 <h1 class="miyabi-title" style="font-size: 4.5rem;">非将棋</h1>
-                <div class="kazarikei"></div>
             </div>
             <div class="clear-btn-group" style="flex-direction: column; gap: 20px; width: 100%; max-width: 320px; z-index: 10; margin-top: 30px;">
                 <button id="btn-campaign-start" class="clear-btn next-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem;">本戦 (盤上選択へ)</button>
-                <button id="btn-practice-start" class="clear-btn back-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem; border-color: #d4af37; color: #d4af37; background: rgba(20, 20, 20, 0.6);">修練 (一対一練習)</button>
+                <button id="btn-practice-start" class="clear-btn back-btn" style="width: 100%; padding: 18px 0; font-size: 1.4rem; border-color: #555; background: rgba(20, 20, 20, 0.6);">修練 (一対一練習)</button>
             </div>
         </div>
     </div>
@@ -110,10 +105,10 @@
     <div id="loading-screen" style="display: none;">
         <div id="loading-content" style="text-align: center; max-width: 600px; padding: 20px;">
             <h2 id="loading-title">盤上生成中...</h2>
-            <p id="loading-status" style="font-size: 1.1rem; color: #aaa; margin-top: 10px; line-height: 1.6;">スプレッドシートからデータを取得しています。</p>
+            <p id="loading-status" style="font-size: 1.1rem; color: #888; margin-top: 10px; line-height: 1.6;">スプレッドシートからデータを取得しています。</p>
             <div id="loading-error-actions" style="display: none; margin-top: 30px;">
-                <button id="btn-fallback-start" class="clear-btn" style="font-size: 1.2rem; padding: 12px 35px; border: 2px solid #ae1f23; background: #d4af37; color: #1a1a1a;">予備の盤上で開始</button>
-                <div style="margin-top: 25px; font-size: 0.9rem; color: #888; text-align: left; line-height: 1.8; border-top: 1px solid #333; padding-top: 15px;">
+                <button id="btn-fallback-start" class="clear-btn" style="font-size: 1.2rem; padding: 12px 35px; background: #007bff; border: 1px solid #007bff; color: #fff;">予備の盤上で開始</button>
+                <div style="margin-top: 25px; font-size: 0.9rem; color: #666; text-align: left; line-height: 1.8; border-top: 1px solid #333; padding-top: 15px;">
                     <strong>【読み込みに失敗しました】</strong><br>
                      <strong>予備のデータで遊ぶか、サイトを更新してください。</strong>
                 </div>
@@ -212,12 +207,10 @@
 
     <!-- 修練（駒選択）画面 -->
     <div id="practice-select-menu" style="display:none;">
-        <div class="deco-circle"></div>
         <div class="menu-inner">
             <div class="washitsu-header">
                 <span class="sub-title">PRACTICE MODE</span>
                 <h1 class="miyabi-title">修練対戦駒選択</h1>
-                <div class="kazarikei"></div>
             </div>
             <div class="stage-list" id="practice-piece-list"></div>
             <button id="btn-back-to-title-practice" class="clear-btn back-btn" style="margin-top: 25px; z-index: 3; width: 100%; max-width: 300px;">タイトルに戻る</button>
@@ -236,10 +229,7 @@
             <div class="petal p7"></div>
             <div class="petal p8"></div>
         </div>
-        <div class="ensou-container">
-            <div class="ensou-circle"></div>
-            <h1 class="clear-main-title">見事</h1>
-        </div>
+        <h1 class="clear-main-title">STAGE CLEAR</h1>
         <div class="clear-info-wrap">
             <div class="clear-line"></div>
             <div class="clear-info">局を制しました</div>
@@ -247,7 +237,7 @@
         </div>
         <div class="clear-btn-group">
             <button id="btn-next-stage" class="clear-btn next-btn">次の局へ</button>
-            <button id="btn-clear-practice" class="clear-btn next-btn" style="background:#d4af37; border-color:#f5f5f0; color:#1a1a1a; display:none;">他の駒と修練</button>
+            <button id="btn-clear-practice" class="clear-btn next-btn" style="background:#28a745; border-color:#28a745; display:none;">他の駒と修練</button>
             <button id="btn-clear-back" class="clear-btn back-btn">盤上選択に戻る</button>
             <button id="btn-clear-title" class="clear-btn back-btn">タイトルに戻る</button>
         </div>
@@ -255,18 +245,15 @@
 
     <!-- 一時停止（ポーズ）画面 -->
     <div id="pause-menu" style="display:none;">
-        <div class="ensou-container" style="margin-bottom: 20px;">
-            <div class="ensou-circle"></div>
-            <h1 class="clear-main-title" style="font-size: 3.2rem;">一時停止</h1>
-        </div>
+        <h1 class="clear-main-title" style="font-size: 3.2rem;">PAUSED</h1>
         <div class="clear-info-wrap">
             <div class="clear-line"></div>
-            <div class="clear-info">一休みいたしましょう</div>
+            <div class="clear-info">一時停止中</div>
             <div class="clear-line"></div>
         </div>
         <div class="clear-btn-group">
             <button id="btn-resume-game" class="clear-btn next-btn">再開</button>
-            <button id="btn-pause-practice" class="clear-btn next-btn" style="background:#d4af37; border-color:#f5f5f0; color:#1a1a1a; display:none;">修練選択に戻る</button>
+            <button id="btn-pause-practice" class="clear-btn next-btn" style="background:#28a745; border-color:#28a745; display:none;">修練選択に戻る</button>
             <button id="btn-pause-back" class="clear-btn back-btn">盤上選択に戻る</button>
             <button id="btn-pause-title" class="clear-btn back-btn">タイトルに戻る</button>
         </div>
@@ -274,10 +261,10 @@
 
     <!-- 敗北（投了）画面 -->
     <div id="game-over">
-        <h1>投了</h1>
+        <h1>GAME OVER</h1>
         <div class="clear-btn-group" style="margin-top: 40px; z-index: 1005;">
             <button id="btn-restart-stage" class="clear-btn next-btn">再戦を申し込む</button>
-            <button id="btn-go-practice" class="clear-btn next-btn" style="background:#d4af37; border-color:#f5f5f0; color:#1a1a1a; display:none;">修練選択に戻る</button>
+            <button id="btn-go-practice" class="clear-btn next-btn" style="background:#28a745; border-color:#28a745; display:none;">修練選択に戻る</button>
             <button id="btn-go-back" class="clear-btn back-btn">盤上選択に戻る</button>
             <button id="btn-go-title" class="clear-btn back-btn">タイトルに戻る</button>
         </div>
