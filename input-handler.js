@@ -42,6 +42,14 @@ export class InputHandler {
         PLAYER.isShooting = false;
         joystickVector.x = 0;
         joystickVector.y = 0;
+        
+        // ダッシュ状態およびUIクラスの確実なリセット
+        STATE.dashActive = false;
+        const btnDash = document.getElementById('btn-dash');
+        if (btnDash) {
+            btnDash.classList.remove('active');
+        }
+
         const knob = document.getElementById('joystick-knob');
         if (knob) {
             knob.style.transform = 'translate(0px, 0px)';
@@ -141,6 +149,13 @@ export class InputHandler {
 
     initTouchControls() {
         if (this.touchControlsSetup) return;
+
+        // HTMLロード中の場合は構築完了まで待機し、要素取得の失敗を防止
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initTouchControls());
+            return;
+        }
+
         try {
             this.setupTouchControls();
             this.setupMapTouchControls();
@@ -315,8 +330,13 @@ export class InputHandler {
         const btnDash = document.getElementById('btn-dash');
         if (btnDash) {
             btnDash.addEventListener('touchstart', e => {
-                e.preventDefault();
+                // ポーズ中やショップ展開中などは入力を無視（早期リターンを先行させ、他のUI要素への影響を防ぐ）
                 if (STATE.shopOpen || STATE.isGameOver || !STATE.stageActive || STATE.isPaused || STATE.introActive) return;
+
+                // 入力が有効な場合のみ既定動作とイベントのバブリングを防止
+                e.preventDefault();
+                e.stopPropagation();
+
                 STATE.dashActive = !STATE.dashActive;
                 if (STATE.dashActive) {
                     btnDash.classList.add('active');
