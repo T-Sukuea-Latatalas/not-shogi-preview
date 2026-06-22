@@ -314,22 +314,43 @@ export const AssetFactory = {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         
-        ctx.fillStyle = ensureColorString(COLORS.wood || '#e3c88d'); 
+        // 榧（かや）特有の温かみと高級感のある地色
+        const baseColor = ensureColorString(COLORS.wood || '#e3c88d'); 
+        ctx.fillStyle = baseColor; 
         ctx.fillRect(0, 0, 1024, 1024);
         
+        // 微細な光沢感とムラを出すグラデーション
+        const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+        grad.addColorStop(0, 'rgba(0,0,0,0.01)');
+        grad.addColorStop(0.3, 'rgba(255,255,255,0.03)');
+        grad.addColorStop(0.7, 'rgba(0,0,0,0.02)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.01)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 1024);
+        
+        // 自然な柾目（木目線）の描画。何重にも薄く重ねることでリアルな年輪を表現
         ctx.strokeStyle = '#b59659';
-        for(let i=0; i<40; i++) { 
-            ctx.lineWidth = Math.random() * 2 + 1.0; 
+        for(let i = 0; i < 110; i++) { 
+            ctx.lineWidth = Math.random() * 1.5 + 0.5; 
+            ctx.strokeStyle = `rgba(181, 150, 89, ${Math.random() * 0.22 + 0.08})`; 
             let x = Math.random() * 1024; 
             ctx.beginPath(); 
             ctx.moveTo(x, 0); 
-            ctx.lineTo(x + (Math.random() - 0.5) * 80, 1024); 
+            // わずかなうねりを加えてデジタル感を排除
+            const waveFreq = Math.random() * 0.005 + 0.002;
+            const waveAmp = Math.random() * 25 + 10;
+            for (let y = 0; y <= 1024; y += 20) {
+                const ox = x + Math.sin(y * waveFreq) * waveAmp;
+                if (y === 0) ctx.moveTo(ox, y);
+                else ctx.lineTo(ox, y);
+            }
             ctx.stroke(); 
         }
 
         if (isBoard) {
-            ctx.strokeStyle = '#1a1a1a';
-            ctx.lineWidth = 4;
+            // 深みのある漆の黒茶色の格子線
+            ctx.strokeStyle = 'rgba(26, 20, 16, 0.95)';
+            ctx.lineWidth = 4.5;
             const margin = 80;
             const size = 1024 - margin * 2;
             const step = size / 9;
@@ -346,8 +367,8 @@ export const AssetFactory = {
                 ctx.stroke();
             }
 
-            const dotRadius = 10;
-            ctx.fillStyle = '#1a1a1a';
+            const dotRadius = 9;
+            ctx.fillStyle = '#1a100a';
             const stars = [3, 6];
             stars.forEach(r => {
                 stars.forEach(c => {
@@ -363,16 +384,25 @@ export const AssetFactory = {
             ctx.textAlign = "center"; 
             ctx.textBaseline = "middle"; 
 
-            if (text.length === 2) {
-                ctx.font = "bold 320px sans-serif"; 
-                ctx.fillText(text[0], 512, 420); 
+            // 格調高い毛筆フォント・明朝体ファミリー
+            const fontName = "'Yuji Syuku', 'SentySinoType', '游明朝', YuMincho, 'MS Mincho', 'Hiragino Mincho ProN', serif";
+            
+            // 墨が木にしっかりと馴染んだように見えるよう、わずかなにじみ（影）を表現
+            ctx.shadowColor = 'rgba(0,0,0,0.15)';
+            ctx.shadowBlur = 4;
 
-                ctx.font = "bold 260px sans-serif"; 
-                ctx.fillText(text[1], 512, 710); 
+            if (text.length === 2) {
+                ctx.font = `bold 310px ${fontName}`; 
+                ctx.fillText(text[0], 512, 415); 
+
+                ctx.font = `bold 250px ${fontName}`; 
+                ctx.fillText(text[1], 512, 715); 
             } else {
-                ctx.font = "bold 460px sans-serif"; 
-                ctx.fillText(text, 512, 540); 
+                ctx.font = `bold 440px ${fontName}`; 
+                ctx.fillText(text, 512, 535); 
             }
+            
+            ctx.shadowBlur = 0;
         }
         return new THREE.CanvasTexture(canvas);
     },
@@ -383,11 +413,11 @@ export const AssetFactory = {
     getMaterials(type) {
         const fullName = PIECE_NAMES[type] || type;
         
-        let textColor = '#1a1a1a'; 
+        let textColor = '#1e1a15'; // 漆黒に近い墨色 
         if (type === '王' || type === '玉') {
-            textColor = ensureColorString(COLORS.gold || '#d4af37'); 
+            textColor = ensureColorString(COLORS.gold || '#d4af37'); // 雅な金箔
         } else if (type === '金' || type === '金将') {
-            textColor = ensureColorString(COLORS.vermillion || '#ae1f23'); 
+            textColor = ensureColorString(COLORS.vermillion || '#ae1f23'); // 伝統的な朱
         } else if (['と', '成香', '成桂', '成銀', '竜', '馬', '竜王', '竜馬'].includes(type) || type.includes('成')) {
             textColor = ensureColorString(COLORS.vermillion || '#ae1f23'); 
         }
@@ -395,9 +425,18 @@ export const AssetFactory = {
         const frontTex = this.createWoodCanvas(fullName, textColor);
         const sideTex = this.createWoodCanvas(null);
 
+        // しっとりとした気品のある高級木肌の風合い（反射やざらざら具合を最適化）
         return [
-            new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.7, metalness: 0.05 }),
-            new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.7, metalness: 0.05 })
+            new THREE.MeshStandardMaterial({ 
+                map: frontTex, 
+                roughness: 0.35, 
+                metalness: 0.08 
+            }),
+            new THREE.MeshStandardMaterial({ 
+                map: sideTex, 
+                roughness: 0.38, 
+                metalness: 0.05 
+            })
         ];
     },
 
@@ -413,14 +452,16 @@ export const AssetFactory = {
         ctx.fillStyle = ensureColorString(baseColor); 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        const isDarkBase = baseColor === '#151515' || baseColor === '#181818';
-        ctx.strokeStyle = isDarkBase ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)';
-        for(let i=0; i<35; i++) { 
-            ctx.lineWidth = Math.random() * 4 + 1.5; 
+        const isDarkBase = baseColor === '#151515' || baseColor === '#181818' || baseColor === '#0a0a0a';
+        
+        // 漆器特有の上品な艶や微細な質感を出すため、非常に薄いヘアラインのような質感を重ねる
+        ctx.strokeStyle = isDarkBase ? 'rgba(255, 255, 255, 0.015)' : 'rgba(0, 0, 0, 0.015)';
+        for(let i = 0; i < 55; i++) { 
+            ctx.lineWidth = Math.random() * 3 + 0.5; 
             let x = Math.random() * 1024; 
             ctx.beginPath(); 
             ctx.moveTo(x, 0); 
-            ctx.lineTo(x + (Math.random() - 0.5) * 80, 1024); 
+            ctx.lineTo(x + (Math.random() - 0.5) * 60, 1024); 
             ctx.stroke(); 
         }
 
@@ -428,8 +469,13 @@ export const AssetFactory = {
             ctx.fillStyle = ensureColorString(textColor); 
             ctx.textAlign = "center"; 
             ctx.textBaseline = "middle"; 
-            ctx.font = "bold 550px 'Segoe UI Symbol', sans-serif"; 
+            ctx.font = "bold 530px 'Times New Roman', 'Georgia', 'Segoe UI Symbol', serif"; 
+            
+            // 箔押しされたようなかすかな立体感
+            ctx.shadowColor = isDarkBase ? 'rgba(212, 175, 55, 0.25)' : 'rgba(0, 0, 0, 0.1)';
+            ctx.shadowBlur = 6;
             ctx.fillText(symbol, 512, 512); 
+            ctx.shadowBlur = 0;
         }
         return new THREE.CanvasTexture(canvas);
     },
@@ -448,14 +494,17 @@ export const AssetFactory = {
         };
         const symbol = symbols[type] || '♟';
         
-        const baseColor = isWhite ? '#fffefb' : '#151515';  
-        const textColor = isWhite ? '#1a1a1a' : ensureColorString(COLORS.gold || '#d4af37');  
+        // 白：高級な白磁・象牙（アイボリー）、黒：美しい磨き上げられた黒漆
+        const baseColor = isWhite ? '#fdfcf7' : '#0a0a0a';  
+        const textColor = isWhite ? '#1c1815' : ensureColorString(COLORS.gold || '#d4af37');  
         
         const frontTex = this.createChessCanvas(symbol, baseColor, textColor);
         const sideTex = this.createChessCanvas(null, baseColor, textColor);
 
-        const roughnessValue = isWhite ? 0.2 : 0.15;
-        const metalnessValue = isWhite ? 0.4 : 0.8; 
+        // 白駒：象牙や陶器のようなソフトでなめらかな光沢
+        // 黒駒：周囲の光線をしっとりと受け止める、磨き漆のような高級感
+        const roughnessValue = isWhite ? 0.22 : 0.12;
+        const metalnessValue = isWhite ? 0.08 : 0.15; 
 
         return [
             new THREE.MeshStandardMaterial({ 
@@ -479,19 +528,32 @@ export const AssetFactory = {
         canvas.width = 512; 
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#274221'; 
+        
+        // 深みのある苔色のブレンド
+        ctx.fillStyle = '#1b2d17'; 
         ctx.fillRect(0, 0, 512, 512);
         
-        for (let i = 0; i < 8000; i++) {
+        // より自然な「ふかふかした立体感と湿度」を表現する点描処理
+        for (let i = 0; i < 15000; i++) {
             const x = Math.random() * 512;
             const y = Math.random() * 512;
-            const r = Math.random() * 4 + 1;
-            const green = Math.floor(Math.random() * 40) + 30; 
-            ctx.fillStyle = `rgb(${Math.floor(green * 0.45)}, ${green}, ${Math.floor(green * 0.25)})`;
+            const r = Math.random() * 5 + 1.5;
+            
+            const greenVal = Math.floor(Math.random() * 50) + 40; 
+            const redVal = Math.floor(greenVal * 0.4);
+            const blueVal = Math.floor(greenVal * 0.2);
+            
+            ctx.fillStyle = `rgba(${redVal}, ${greenVal}, ${blueVal}, ${Math.random() * 0.7 + 0.3})`;
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
             ctx.fill();
         }
+        
+        // わずかなソフトフォーカスを入れて苔特有の質感をなじませる
+        ctx.filter = 'blur(0.5px)';
+        ctx.drawImage(canvas, 0, 0);
+        ctx.filter = 'none';
+
         return new THREE.CanvasTexture(canvas);
     },
 
@@ -500,39 +562,70 @@ export const AssetFactory = {
         canvas.width = 1024; 
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#dcd9cd'; 
+        
+        // 温かみのある白砂の色
+        ctx.fillStyle = '#e2dfd5'; 
         ctx.fillRect(0, 0, 1024, 1024);
         
-        ctx.fillStyle = 'rgba(0,0,0,0.02)'; 
-        for (let i = 0; i < 20000; i++) {
-            ctx.fillRect(Math.random()*1024, Math.random()*1024, 2, 2);
+        // 砂粒の陰影を表現する超高密度なノイズ
+        ctx.fillStyle = 'rgba(0,0,0,0.03)'; 
+        for (let i = 0; i < 40000; i++) {
+            ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 1.5, 1.5);
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.05)'; 
+        for (let i = 0; i < 40000; i++) {
+            ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 1.5, 1.5);
         }
         
-        ctx.strokeStyle = 'rgba(0,0,0,0.04)'; 
-        ctx.lineWidth = 4;
-        for (let y = -50; y < 1074; y += 24) {
-            ctx.beginPath();
-            for (let x = 0; x <= 1024; x += 10) {
-                const wave = Math.sin(x * 0.03) * 6;
-                if (x === 0) ctx.moveTo(x, y + wave);
-                else ctx.lineTo(x, y + wave);
-            }
-            ctx.stroke();
-        }
+        // 砂紋の凹凸（立体感）をエンボス風に表現する描画用ヘルパー。
+        // 暗い線（影）と明るい線（ハイライト）を交互にわずかにずらして描く。
+        const drawRippleShadowAndLight = (drawFn) => {
+            ctx.lineWidth = 4;
+            
+            // 影（凹部）
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.save();
+            ctx.translate(1, 1);
+            drawFn();
+            ctx.restore();
+            
+            // 光（凸部）
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+            ctx.save();
+            ctx.translate(-1, -1);
+            drawFn();
+            ctx.restore();
+        };
 
-        ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+        // 平行な波紋
+        drawRippleShadowAndLight(() => {
+            for (let y = -50; y < 1074; y += 24) {
+                ctx.beginPath();
+                for (let x = 0; x <= 1024; x += 10) {
+                    const wave = Math.sin(x * 0.03) * 6;
+                    if (x === 0) ctx.moveTo(x, y + wave);
+                    else ctx.lineTo(x, y + wave);
+                }
+                ctx.stroke();
+            }
+        });
+
+        // 庭石周辺の同心円状の砂紋
         const ripples = [
             {x: 350, y: 350, maxR: 120},
             {x: 700, y: 650, maxR: 150},
             {x: 200, y: 800, maxR: 100},
             {x: 850, y: 250, maxR: 130}
         ];
-        ripples.forEach(rip => {
-            for (let r = 10; r < rip.maxR; r += 24) {
-                ctx.beginPath();
-                ctx.arc(rip.x, rip.y, r, 0, Math.PI * 2);
-                ctx.stroke();
-            }
+        
+        drawRippleShadowAndLight(() => {
+            ripples.forEach(rip => {
+                for (let r = 12; r < rip.maxR; r += 24) {
+                    ctx.beginPath();
+                    ctx.arc(rip.x, rip.y, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
         });
 
         return new THREE.CanvasTexture(canvas);
@@ -548,18 +641,26 @@ export function createBamboo() {
     const numSegments = 6 + Math.floor(Math.random() * 4); 
     const baseRadius = 0.25 + Math.random() * 0.1;
     
-    const bambooColor = new THREE.Color().setHSL(0.28 + Math.random() * 0.04, 0.45, 0.25 + Math.random() * 0.08);
+    // 伝統的でみずみずしい竹の色合い（HSL）
+    const bambooColor = new THREE.Color().setHSL(0.28 + Math.random() * 0.04, 0.48, 0.22 + Math.random() * 0.06);
+    
+    // 張りのある瑞々しい竹皮の半光沢
     const material = new THREE.MeshStandardMaterial({
-        color: bambooColor, roughness: 0.5, metalness: 0.1
+        color: bambooColor, 
+        roughness: 0.32, 
+        metalness: 0.05
     });
+    
+    // 乾燥してざらついた、節部分の質感
     const jointMaterial = new THREE.MeshStandardMaterial({
-        color: bambooColor.clone().multiplyScalar(0.7), roughness: 0.7
+        color: bambooColor.clone().multiplyScalar(0.72).addScalar(0.02), 
+        roughness: 0.65
     });
 
     for (let i = 0; i < numSegments; i++) {
         const rBottom = baseRadius * (1 - (i * 0.03));
         const rTop = baseRadius * (1 - ((i + 1) * 0.03));
-        const segGeom = new THREE.CylinderGeometry(rTop, rBottom, segmentHeight - 0.15, 8);
+        const segGeom = new THREE.CylinderGeometry(rTop, rBottom, segmentHeight - 0.15, 12);
         const segment = new THREE.Mesh(segGeom, material);
         segment.position.y = (i * segmentHeight) + (segmentHeight / 2);
         segment.castShadow = true;
@@ -567,7 +668,8 @@ export function createBamboo() {
         bamboo.add(segment);
 
         if (i < numSegments - 1) {
-            const jointGeom = new THREE.CylinderGeometry(rTop * 1.18, rTop * 1.18, 0.12, 8);
+            // 節のリングをより有機的に少しだけ肉厚に表現
+            const jointGeom = new THREE.CylinderGeometry(rTop * 1.15, rTop * 1.15, 0.14, 12);
             const joint = new THREE.Mesh(jointGeom, jointMaterial);
             joint.position.y = (i + 1) * segmentHeight;
             joint.castShadow = true;
@@ -582,24 +684,31 @@ export function createBamboo() {
  */
 export function createRock() {
     const size = 1.8 + Math.random() * 2.2;
-    const geom = new THREE.DodecahedronGeometry(size, 1);
+    // 頂点の分割数を上げて、岩肌のリアリティと複雑さを向上
+    const geom = new THREE.DodecahedronGeometry(size, 2);
     
     const posAttr = geom.attributes.position;
     for (let i = 0; i < posAttr.count; i++) {
-        posAttr.setX(i, posAttr.getX(i) + (Math.random() - 0.5) * (size * 0.25));
-        posAttr.setY(i, posAttr.getY(i) + (Math.random() - 0.5) * (size * 0.25));
-        posAttr.setZ(i, posAttr.getZ(i) + (Math.random() - 0.5) * (size * 0.25));
+        // 微細なディテールをランダムにノイズ化
+        posAttr.setX(i, posAttr.getX(i) + (Math.random() - 0.5) * (size * 0.18));
+        posAttr.setY(i, posAttr.getY(i) + (Math.random() - 0.5) * (size * 0.18));
+        posAttr.setZ(i, posAttr.getZ(i) + (Math.random() - 0.5) * (size * 0.18));
     }
     geom.computeVertexNormals();
 
-    const rockColor = new THREE.Color(0x444444).lerp(new THREE.Color(0x555555), Math.random() * 0.4);
+    // 湿り気のある深い庭石を思わせる、深みのある濃灰色〜暗オリーブ色
+    const baseColor = new THREE.Color(0x3e3f3a);
+    const rockColor = baseColor.clone().lerp(new THREE.Color(0x2d302a), Math.random() * 0.5);
+    
     const mat = new THREE.MeshStandardMaterial({
-        color: rockColor, roughness: 0.9, metalness: 0.0
+        color: rockColor, 
+        roughness: 0.85, 
+        metalness: 0.08
     });
     const rock = new THREE.Mesh(geom, mat);
-    rock.scale.set(1.2 + Math.random() * 0.6, 0.7 + Math.random() * 0.4, 1.2 + Math.random() * 0.6);
-    rock.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, Math.random() * 0.5);
-    rock.position.y = -0.5; 
+    rock.scale.set(1.2 + Math.random() * 0.5, 0.75 + Math.random() * 0.35, 1.2 + Math.random() * 0.5);
+    rock.rotation.set(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
+    rock.position.y = -0.4; 
     rock.castShadow = true;
     rock.receiveShadow = true;
     return rock;
@@ -610,16 +719,24 @@ export function createRock() {
  */
 export function createLantern() {
     const lantern = new THREE.Group();
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.85 });
+    // 味わい深い石造りの渋み
+    const stoneMat = new THREE.MeshStandardMaterial({ 
+        color: 0x555555, 
+        roughness: 0.88,
+        metalness: 0.05
+    });
+    // 和紙の障子を透かして滲む、柔らかく温かい日本の火影
     const lightMat = new THREE.MeshStandardMaterial({ 
-        color: 0xfff0c0, emissive: 0xff7300, emissiveIntensity: 1.5 
+        color: 0xffe6a3, 
+        emissive: 0xff6a00, 
+        emissiveIntensity: 2.2 
     });
 
     const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), stoneMat);
     base.position.y = 0.15; base.castShadow = true; base.receiveShadow = true;
     lantern.add(base);
 
-    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 1.6, 8), stoneMat);
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 1.6, 12), stoneMat);
     pillar.position.y = 1.1; pillar.castShadow = true; pillar.receiveShadow = true;
     lantern.add(pillar);
 
@@ -650,7 +767,8 @@ export function createLantern() {
     jewel.scale.set(1, 1.3, 1); jewel.position.y = 3.53; jewel.castShadow = true;
     lantern.add(jewel);
 
-    const light = new THREE.PointLight(0xff8c00, 1.2, 20);
+    // 幽玄な和の陰影を引き立てる、灯篭本来の温かみを持たせたポイントライト
+    const light = new THREE.PointLight(0xff7700, 1.5, 18);
     light.position.set(0, 2.5, 0); light.castShadow = true; light.shadow.bias = -0.001;
     lantern.add(light);
 
