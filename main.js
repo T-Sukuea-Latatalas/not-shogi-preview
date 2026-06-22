@@ -1327,40 +1327,59 @@ function animate() {
 
     // ダッシュ補正
     let currentSpeed = PLAYER.speed;
-    if (keys['ShiftLeft'] || keys['ShiftRight']) {
+    if (keys['ShiftLeft'] || keys['ShiftRight'] || STATE.dashActive) {
         currentSpeed *= DASH_MULT;
     }
 
-    STATE.camera.position.x += moveDir.x * currentSpeed;
-    STATE.camera.position.z += moveDir.z * currentSpeed;
+    // クリエイティブモード (自由移動) 用処理
+    if (STATE.isCreativeMode) {
+        if (keys['Space']) {
+            STATE.camera.position.y += 0.3;
+        }
+        if (keys['KeyC']) {
+            STATE.camera.position.y -= 0.3;
+        }
+        STATE.camera.position.x += moveDir.x * currentSpeed;
+        STATE.camera.position.z += moveDir.z * currentSpeed;
+    } else {
+        STATE.camera.position.x += moveDir.x * currentSpeed;
+        STATE.camera.position.z += moveDir.z * currentSpeed;
 
-    // ボード境界制限（範囲外への侵入防止）
-    const limit = BOARD_SIZE / 2;
-    if (STATE.camera.position.x < -limit) STATE.camera.position.x = -limit;
-    if (STATE.camera.position.x > limit) STATE.camera.position.x = limit;
-    if (STATE.camera.position.z < -limit) STATE.camera.position.z = -limit;
-    if (STATE.camera.position.z > limit) STATE.camera.position.z = limit;
+        // ボード境界制限（範囲外への侵入防止）
+        const limit = BOARD_SIZE / 2;
+        if (STATE.camera.position.x < -limit) STATE.camera.position.x = -limit;
+        if (STATE.camera.position.x > limit) STATE.camera.position.x = limit;
+        if (STATE.camera.position.z < -limit) STATE.camera.position.z = -limit;
+        if (STATE.camera.position.z > limit) STATE.camera.position.z = limit;
 
-    // ジャンプと重力の処理（落下と接地判定）
-    if ((keys['Space'] || keys['KeySpace']) && PLAYER.isGrounded) {
-        PLAYER.vy = JUMP_FORCE;
-        PLAYER.isGrounded = false;
-    }
+        // ジャンプと重力の処理（落下と接地判定）
+        if ((keys['Space'] || keys['KeySpace']) && PLAYER.isGrounded) {
+            if (STATE.playerStunTime <= 0) {
+                PLAYER.vy = JUMP_FORCE;
+                PLAYER.isGrounded = false;
+            }
+        }
 
-    if (!PLAYER.isGrounded) {
-        PLAYER.vy += GRAVITY; // 負の値であるGRAVITYを加算することで、下向きの加速度を適用
-        STATE.camera.position.y += PLAYER.vy;
-        
-        const floorY = GROUND_Y + EYE_HEIGHT;
-        if (STATE.camera.position.y <= floorY) {
-            STATE.camera.position.y = floorY;
-            PLAYER.vy = 0;
-            PLAYER.isGrounded = true;
+        if (!PLAYER.isGrounded) {
+            PLAYER.vy += GRAVITY; // 負の値であるGRAVITYを加算することで、下向きの加速度を適用
+            STATE.camera.position.y += PLAYER.vy;
+            
+            const floorY = GROUND_Y + EYE_HEIGHT;
+            if (STATE.camera.position.y <= floorY) {
+                STATE.camera.position.y = floorY;
+                PLAYER.vy = 0;
+                PLAYER.isGrounded = true;
+            }
         }
     }
 
+    // スタンタイマーの処理
+    if (STATE.playerStunTime > 0) {
+        STATE.playerStunTime -= 16; 
+    }
+
     // --- 2. プレイヤーの攻撃（自動連射） ---
-    if (PLAYER.isShooting) {
+    if (PLAYER.isShooting && STATE.playerStunTime <= 0) {
         const now = Date.now();
         if (now - PLAYER.lastShot >= PLAYER.fireRate) {
             shoot();
@@ -1387,14 +1406,16 @@ function animate() {
 
             // 敵消滅時の処理
             if (!enemy.alive) {
-                const points = (enemy.type === '王' || enemy.type === 'キング' || enemy.type === 'ヨット') ? 500 : 100;
+                const points = (enemy.type === '王' || enemy.type === 'キング' || enemy.type === 'ヨット' || enemy.type === 'Yacht') ? 1000 : 200;
                 STATE.score += points;
 
                 // 一定確率で回復・スコアアイテムをドロップ
                 if (Math.random() < 0.4) {
                     const itemTypes = ['score', 'heal'];
                     const randType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-                    STATE.items.push(new Item(enemy.mesh.position.clone(), randType));
+                    const droppedItem = new Item(enemy.mesh.position.clone());
+                    droppedItem.type = randType; 
+                    STATE.items.push(droppedItem);
                 }
 
                 enemy.destroy();
@@ -1415,3 +1436,108 @@ function animate() {
             let hit = false;
             // 敵との衝突判定
             if (STATE.enemies) {
+                for (let j = STATE.enemies.length - 1; j >= 0; j--) {
+                    const enemy = STATE.enemies[j];
+                    if (!enemy || !enemy.mesh || !enemy.alive) continue;
+
+                    const isBoss = (enemy.type === 'ヨット' || enemy.type === 'Yacht');
+                    const threshold = isBoss ? 5.0 : 2.2;
+                    const enemyCorePos = enemy.mesh.position.clone();
+                    
+                    if (!isBoss) {
+                        enemyCorePos.y += 1.0;
+                    }
+
+                    const dist = bullet.mesh.position.distanceTo(enemyCorePos);
+                    if (dist < threshold) {
+                        hit = true;
+                        
+                        const isDead = enemy.takeHit(PLAYER.power);
+                        
+                        if (uiManager) {
+                            uiManager.flashCrosshair();
+                        }
+                        
+                        if (isDead) {
+                            enemy.alive = false;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            const isOutOfRange = bullet.mesh.position.length() > 200;
+            if (hit || !bullet.alive || isOutOfRange) {
+                bullet.destroy();
+                STATE.bullets.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 6. 敵弾のアップデート ---
+    if (STATE.enemyBullets) {
+        for (let i = STATE.enemyBullets.length - 1; i >= 0; i--) {
+            const eb = STATE.enemyBullets[i];
+            if (!eb) continue;
+
+            eb.update();
+
+            const isOutOfRange = eb.mesh.position.length() > 200;
+            if (!eb.alive || isOutOfRange) {
+                eb.destroy();
+                STATE.enemyBullets.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 7. ドロップアイテムのアップデートと接触判定 ---
+    if (STATE.items) {
+        for (let i = STATE.items.length - 1; i >= 0; i--) {
+            const item = STATE.items[i];
+            if (!item) continue;
+
+            item.update();
+
+            const dist = item.mesh.position.distanceTo(STATE.camera.position);
+            if (dist < 3.5) {
+                if (item.type === 'heal') {
+                    PLAYER.hp = Math.min(PLAYER.maxHp, PLAYER.hp + 30);
+                    if (uiManager) uiManager.showMsg("生命回復 +30");
+                } else {
+                    STATE.score += 200;
+                    if (uiManager) uiManager.showMsg("銭獲得 +200");
+                }
+                
+                if (uiManager) uiManager.updateUI();
+                savePlayerData();
+
+                item.destroy();
+                STATE.items.splice(i, 1);
+            } else if (!item.alive) {
+                item.destroy();
+                STATE.items.splice(i, 1);
+            }
+        }
+    }
+
+    // --- 8. ステージクリア判定 ---
+    if (STATE.stageActive && !STATE.isGameOver && STATE.enemies && STATE.enemies.length === 0) {
+        showStageClear();
+    }
+
+    // --- 9. レンダリングの実行 ---
+    if (STATE.renderer && STATE.scene && STATE.camera) {
+        STATE.renderer.render(STATE.scene, STATE.camera);
+    }
+}
+
+// --- 外部API用のグローバル関数 / 状態エクスポート登録 ---
+window.updateUI = () => { if (uiManager) uiManager.updateUI(); };
+window.savePlayerData = savePlayerData;
+window.showStageClear = showStageClear;
+window.takeDamage = takeDamage;
+window.startStage = startStage;
+window.selectStage = selectStage;
+window.STATE = STATE;
+window.PLAYER = PLAYER;
+window.UPGRADE_COSTS = UPGRADE_COSTS;
