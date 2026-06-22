@@ -298,8 +298,9 @@ export class Enemy {
 
         try {
             if (chessTypes.includes(type)) {
+                const isWhitePiece = ['P', 'N', 'B', 'R', 'Q', 'K'].includes(type);
                 mats = (AssetFactory && typeof AssetFactory.getChessMaterials === 'function') 
-                    ? AssetFactory.getChessMaterials(type) 
+                    ? AssetFactory.getChessMaterials(type, isWhitePiece) 
                     : null;
                 geom = (typeof getChessGeometry === 'function') 
                     ? getChessGeometry(type) 
