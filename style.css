@@ -536,12 +536,18 @@ canvas {
     opacity: 1;
 }
 
-/* 選択中のアイテム（左側に青色太線） */
+/* 選択中のアイテム（左側に和風の朱色太線・半透明朱色背景） */
 .shop-item.selected {
-    background: rgba(255, 255, 255, 0.1);
-    border-left: 5px solid #007bff;
+    background: rgba(174, 31, 35, 0.15); /* 半透明な朱色背景 */
+    border-left: 5px solid #ae1f23;       /* 朱色ボーダー */
     opacity: 1;
     padding-left: 5px;
+}
+
+/* 選択された項目のマークと金額を上品な金色へ同期 */
+.shop-item.selected .shop-marker,
+.shop-item.selected span:last-child {
+    color: #d4af37;
 }
 
 .shop-marker {
@@ -657,9 +663,10 @@ canvas {
     height: 54px;
 }
 
+/* ダッシュ有効時（和風の朱色背景と金色枠に変更） */
 #btn-dash.active {
-    background: #007bff;
-    border-color: #007bff;
+    background: #ae1f23;
+    border-color: #d4af37;
 }
 
 #btn-shop {
