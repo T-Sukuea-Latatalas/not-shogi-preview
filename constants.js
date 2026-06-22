@@ -1,6 +1,12 @@
 // constants.js
 
-export const COLORS = { wood: 0xe3c88d, gold: 0xd4af37, vermillion: 0xae1f23, ink: 0x1a1a1a, spirit: 0x800080 };
+export const COLORS = { 
+    wood: '#e3c88d', 
+    gold: '#d4af37', 
+    vermillion: '#ae1f23', 
+    ink: '#1a1a1a', 
+    spirit: '#800080' 
+};
 
 export const STATE = { 
     wave: 0, 
@@ -29,11 +35,9 @@ export const STATE = {
     currentStageIndex: 0,
     playerStunTime: 0,
     takeDamage: null,
-    // デバッグ・ゴッドモード・拡張機能関連
+    // デバッグ・ゴッドモード関連
     isDebugMode: false,
-    isGodMode: false,
-    isEnemiesFrozen: false,
-    isCreativeMode: false
+    isGodMode: false
 };
 
 // チェスの駒とヨット（Yacht）の定義を追加
