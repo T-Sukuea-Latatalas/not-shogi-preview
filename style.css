@@ -1,4 +1,29 @@
 /* ==========================================================================
+   0. 侘び寂び・幽玄テーマ カラー変数定義
+   ========================================================================== */
+:root {
+    /* 墨漆 (すみうるし) : ほんのり赤みと深みを帯びた極めて暗い黒褐色 */
+    --color-sumi-urushi: #131110;
+    --color-sumi-urushi-light: #1c1917;
+    --color-sumi-urushi-dark: #0d0c0b;
+    
+    /* 沈金・金箔 (ちんきん・きんぱく) : 鈍い真鍮やブロンズを思わせる高貴な金色 */
+    --color-chinkin: #c5a059;
+    --color-chinkin-pale: #eae0cd;
+    --color-chinkin-dark: #b8934b;
+    
+    /* 本朱・印泥 (ほんしゅ・いんでい) : 歴史の深みを感じる、やや黄みと黒みを含んだ重厚な赤 */
+    --color-honshu: #9e2a2b;
+    --color-honshu-dark: #8a1c1d;
+    --color-honshu-light: #b3393a;
+    
+    /* 和紙 (わし) : 繊維の温かみを残した、落ち着きのある生成り色 */
+    --color-washi: #f5f2eb;
+    --color-washi-dark: #eae5da;
+    --color-washi-dim: #c8c2b5;
+}
+
+/* ==========================================================================
    1. 基本設定と画面制御 (雅・和風モダンテーマ)
    ========================================================================== */
 html, body {
@@ -7,14 +32,15 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #111111; /* 深みのある墨色・漆黒 */
-    color: #fcfaf2; /* 落ち着きのある和紙の生成り色 */
+    background-color: var(--color-sumi-urushi);
+    color: var(--color-washi);
     /* 伝統的な美しさを活かした和風明朝体フォントスタック */
     font-family: "BIZ UDPMincho", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS Mincho", serif;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
     box-sizing: border-box;
+    letter-spacing: 0.1em;
 }
 
 *, *::before, *::after {
@@ -36,21 +62,21 @@ canvas {
 /* ==========================================================================
    2. 被弾（ダメージ）演出
    ========================================================================== */
-/* 被弾時のシンプルな赤色フラッシュ */
+/* 被弾時のシンプルな本朱色フラッシュ */
 #damage-vignette {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(174, 31, 35, 0); /* 朱色ベースの透明度調整 */
+    background-color: rgba(158, 42, 43, 0);
     pointer-events: none;
     z-index: 900;
-    transition: background-color 0.15s ease-out;
+    transition: background-color 0.2s ease-out;
 }
 
 #damage-vignette.hit {
-    background-color: rgba(174, 31, 35, 0.45); /* 鮮烈な朱のフラッシュ */
+    background-color: rgba(158, 42, 43, 0.4);
 }
 
 /* 浮遊式メッセージレイヤー */
@@ -58,17 +84,18 @@ canvas {
     position: fixed;
     top: 25%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(1.3);
-    color: #ae1f23; /* 漆の朱 */
+    transform: translate(-50%, -50%) scale(1.2);
+    color: var(--color-honshu);
     font-size: 2.2rem;
     font-weight: bold;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9), 0 0 8px rgba(212, 175, 55, 0.4); /* 金の仄かな後光 */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 12px rgba(197, 160, 89, 0.35);
     z-index: 2200;
     opacity: 0;
     pointer-events: none;
     font-family: inherit;
-    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
     text-align: center;
+    letter-spacing: 0.3em;
 }
 
 /* ==========================================================================
@@ -86,7 +113,7 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 15, 15, 0.97); /* 墨色の幽玄な和紙フィルター */
+    background: rgba(13, 12, 11, 0.98); /* 墨漆の幽玄な和紙フィルター */
     z-index: 1500;
     display: flex;
     flex-direction: column;
@@ -94,7 +121,7 @@ canvas {
     justify-content: center;
     padding: 20px;
     pointer-events: auto;
-    transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 #device-select-screen { z-index: 2100; }
@@ -102,13 +129,13 @@ canvas {
 #pause-menu { z-index: 1550; }
 #game-over { z-index: 1700; display: none; }
 
-/* 漆器や和モダンな額縁を思わせるインナーウインドウ */
+/* 漆器や掛け軸の「縁取り」を思わせる格調高いインナーウインドウ */
 .menu-inner {
-    background: rgba(26, 26, 26, 0.96); /* 墨塗りの重厚な背景 */
-    border: 2px solid #d4af37; /* 上品な金箔の枠線 */
-    border-radius: 4px; /* 直線美を強調し、角は僅かに落とすのみ */
-    padding: 40px 60px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(212, 175, 55, 0.15); /* 内側からのほのかな金の照らし返し */
+    background: rgba(20, 18, 17, 0.97); /* 漆黒に近づけた墨漆背景 */
+    border: 3px double var(--color-chinkin); /* 沈金の繊細な二重枠線 */
+    border-radius: 1px; /* 直線美を際立たせるため角丸を極限まで排除 */
+    padding: 45px 60px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85), inset 0 0 25px rgba(197, 160, 89, 0.08); /* 内側からの仄かな金箔の照り返し */
     max-width: 500px;
     width: 100%;
     display: flex;
@@ -120,82 +147,89 @@ canvas {
 
 .washitsu-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     position: relative;
     width: 100%;
 }
 
 .washitsu-header .sub-title {
     font-size: 0.9rem;
-    color: #d4af37; /* 金箔色 */
-    letter-spacing: 0.3em;
+    color: var(--color-chinkin-dark);
+    letter-spacing: 0.4em;
     text-transform: uppercase;
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: 600;
 }
 
 .miyabi-title {
-    font-size: 3rem;
-    color: #fcfaf2; /* 生成り */
+    font-size: 2.8rem;
+    color: var(--color-washi);
     margin: 0;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.25em;
     font-weight: 800;
-    text-shadow: 1px 1px 0px #ae1f23, 3px 3px 6px rgba(0, 0, 0, 0.9); /* 朱の陰影と重厚な墨影 */
+    text-shadow: 1px 1px 0px var(--color-honshu), 4px 4px 8px rgba(0, 0, 0, 0.95); /* 本朱の陰影と重厚な墨影 */
 }
 
-/* 漆塗り・金箔枠を思わせる雅なモダンボタン */
+/* 漆器の光沢が沈み込むような、上質なボタン演出 */
 .clear-btn-group {
     display: flex;
     gap: 16px;
     width: 100%;
     justify-content: center;
-    margin-top: 15px;
+    margin-top: 20px;
     z-index: 10;
 }
 
 .clear-btn {
     font-family: inherit;
     font-weight: 600;
-    font-size: 1.1rem;
-    padding: 12px 24px;
-    border: 2px solid #d4af37; /* 金枠 */
-    border-radius: 3px;
+    font-size: 1.05rem;
+    padding: 12px 28px;
+    border: 1px solid var(--color-chinkin-dark); /* 金枠 */
+    border-radius: 1px;
     cursor: pointer;
-    background: #1a1a1a; /* 墨漆 */
-    color: #e3c88d; /* 生成り */
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    background: var(--color-sumi-urushi-dark); /* 深い墨漆 */
+    color: var(--color-chinkin-pale); /* くすんだ金 */
+    transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease;
     outline: none;
     position: relative;
     overflow: hidden;
-    letter-spacing: 0.1em;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.2em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .clear-btn:hover {
-    background: #262626;
-    border-color: #f1da9a; /* 明るい金色 */
-    color: #ffffff;
-    box-shadow: 0 6px 15px rgba(212, 175, 55, 0.25);
+    background: var(--color-sumi-urushi-light);
+    border-color: var(--color-chinkin); /* 落ち着いた金色 */
+    color: var(--color-washi);
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.2);
     transform: translateY(-1px);
 }
 
 .clear-btn:active {
     transform: translateY(1px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    background: #0a0908; /* 沈み込む暗度 */
+    border-color: var(--color-chinkin-dark);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
-/* 朱塗り・漆塗りベース（決定・進行用） */
+/* 本朱塗り・印泥ベース（決定・進行用） */
 .clear-btn.next-btn {
-    background: #ae1f23; /* 朱色 */
-    color: #fcfaf2; /* 和紙白 */
-    border-color: #d4af37; /* 金枠 */
+    background: var(--color-honshu); /* 本朱 */
+    color: var(--color-washi);
+    border-color: var(--color-chinkin);
 }
 
 .clear-btn.next-btn:hover {
-    background: #c31f23;
-    border-color: #f1da9a;
-    box-shadow: 0 6px 15px rgba(174, 31, 35, 0.4);
+    background: var(--color-honshu-light);
+    border-color: var(--color-chinkin-pale);
+    box-shadow: 0 0 18px rgba(158, 42, 43, 0.35);
+}
+
+.clear-btn.next-btn:active {
+    background: var(--color-honshu-dark);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
 /* 練習駒一覧 */
@@ -212,14 +246,14 @@ canvas {
 }
 
 .stage-list::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 .stage-list::-webkit-scrollbar-track {
-    background: #111111;
+    background: var(--color-sumi-urushi-dark);
 }
 .stage-list::-webkit-scrollbar-thumb {
-    background: #ae1f23; /* 朱色のスクロールバー */
-    border-radius: 3px;
+    background: var(--color-honshu); /* 本朱色のスクロールバー */
+    border-radius: 1px;
 }
 
 .stage-btn {
@@ -228,37 +262,37 @@ canvas {
     align-items: center;
     width: 100%;
     padding: 14px 20px;
-    background: rgba(26, 26, 26, 0.8);
-    border: 1px solid rgba(212, 175, 55, 0.25); /* 金箔を想起させる境界線 */
-    color: #e3c88d; /* 生成り */
+    background: rgba(28, 25, 23, 0.85);
+    border: 1px solid rgba(197, 160, 89, 0.15); /* 金箔を想起させる境界線 */
+    color: var(--color-washi-dark);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 3px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 1px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
 }
 
 .stage-btn:hover {
-    background: rgba(174, 31, 35, 0.15); /* 仄かに照る朱光 */
-    border-color: #d4af37; /* 金色に際立つ */
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(174, 31, 35, 0.2), inset 0 0 8px rgba(0, 0, 0, 0.3);
+    background: rgba(158, 42, 43, 0.08); /* 仄かに照る本朱光 */
+    border-color: var(--color-chinkin); /* 沈金色に際立つ */
+    color: var(--color-washi);
+    box-shadow: 0 4px 12px rgba(158, 42, 43, 0.15), inset 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 /* 敗北 */
 #game-over h1 {
-    font-size: 5rem;
-    color: #ae1f23; /* 漆朱 */
-    margin: 0 0 20px 0;
-    letter-spacing: 0.15em;
+    font-size: 4.5rem;
+    color: var(--color-honshu);
+    margin: 0 0 24px 0;
+    letter-spacing: 0.3em;
     font-weight: 800;
-    text-shadow: 0 0 15px rgba(174, 31, 35, 0.6), 2px 2px 5px rgba(0, 0, 0, 0.9);
+    text-shadow: 0 0 20px rgba(158, 42, 43, 0.55), 3px 3px 6px rgba(0, 0, 0, 0.95);
 }
 
 /* ==========================================================================
-   4. アニメーション（情緒的な桜吹雪など）
+   4. アニメーション（情緒的な和桜・霞の演出）
    ========================================================================== */
 /* 桜舞い散る演出 */
 .sakura-container {
@@ -274,29 +308,29 @@ canvas {
 
 .petal {
     position: absolute;
-    background-color: #ffb7c5; /* 桜色 */
+    background-color: #e8b7be; /* 落ち着きのある和桜色（桜鼠・薄紅梅調） */
     border-radius: 150% 0 150% 150%;
-    opacity: 0.85;
+    opacity: 0.75;
     transform: rotate(-45deg);
-    animation: fall-and-sway-right 10s ease-in-out infinite; /* 左右にひらひらと揺らぐ滑らかなイージング */
-    filter: drop-shadow(0 2px 4px rgba(255, 183, 197, 0.35));
+    animation: fall-and-sway-right 11s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(232, 183, 190, 0.2));
 }
 
 @keyframes fall-and-sway-right {
     0% {
         top: -10%;
-        transform: translate(0, 0) rotate(-45deg) scale(0.85);
+        transform: translate(0, 0) rotate(-45deg) scale(0.8);
         opacity: 0;
     }
     10% {
-        opacity: 0.9;
+        opacity: 0.8;
     }
     90% {
-        opacity: 0.9;
+        opacity: 0.8;
     }
     100% {
         top: 110%;
-        transform: translate(180px, 80px) rotate(315deg) scale(1.15);
+        transform: translate(150px, 70px) rotate(315deg) scale(1.1);
         opacity: 0;
     }
 }
@@ -304,41 +338,40 @@ canvas {
 @keyframes fall-and-sway-left {
     0% {
         top: -10%;
-        transform: translate(0, 0) rotate(-45deg) scale(0.9);
+        transform: translate(0, 0) rotate(-45deg) scale(0.85);
         opacity: 0;
     }
     15% {
-        opacity: 0.85;
+        opacity: 0.75;
     }
     85% {
-        opacity: 0.85;
+        opacity: 0.75;
     }
     100% {
         top: 110%;
-        transform: translate(-120px, 100px) rotate(210deg) scale(1.05);
+        transform: translate(-100px, 90px) rotate(210deg) scale(1.0);
         opacity: 0;
     }
 }
 
-/* 各花びらのサイズと情緒的な落下ウェイト */
-.petal.p1 { left: 10%; width: 10px; height: 14px; animation-duration: 7s; animation-name: fall-and-sway-left; }
-.petal.p2 { left: 25%; width: 14px; height: 18px; animation-duration: 11s; animation-delay: 2s; }
-.petal.p3 { left: 40%; width: 8px; height: 12px; animation-duration: 9s; animation-delay: 1s; }
-.petal.p4 { left: 55%; width: 12px; height: 16px; animation-duration: 8s; animation-delay: 3s; animation-name: fall-and-sway-left; }
-.petal.p5 { left: 70%; width: 15px; height: 20px; animation-duration: 12s; }
-.petal.p6 { left: 85%; width: 9px; height: 13px; animation-duration: 10s; animation-delay: 4s; }
-.petal.p7 { left: 95%; width: 11px; height: 15px; animation-duration: 6s; animation-delay: 1.5s; animation-name: fall-and-sway-left; }
-.petal.p8 { left: 15%; width: 13px; height: 17px; animation-duration: 13s; animation-delay: 0.5s; }
+.petal.p1 { left: 10%; width: 10px; height: 14px; animation-duration: 8s; animation-name: fall-and-sway-left; }
+.petal.p2 { left: 25%; width: 14px; height: 18px; animation-duration: 12s; animation-delay: 2s; }
+.petal.p3 { left: 40%; width: 8px; height: 12px; animation-duration: 10s; animation-delay: 1s; }
+.petal.p4 { left: 55%; width: 12px; height: 16px; animation-duration: 9s; animation-delay: 3s; animation-name: fall-and-sway-left; }
+.petal.p5 { left: 70%; width: 15px; height: 20px; animation-duration: 13s; }
+.petal.p6 { left: 85%; width: 9px; height: 13px; animation-duration: 11s; animation-delay: 4s; }
+.petal.p7 { left: 95%; width: 11px; height: 15px; animation-duration: 7s; animation-delay: 1.5s; animation-name: fall-and-sway-left; }
+.petal.p8 { left: 15%; width: 13px; height: 17px; animation-duration: 14s; animation-delay: 0.5s; }
 
 /* 簡素化されたクリアテキスト表示 */
 .clear-main-title {
-    font-size: 4rem;
-    color: #ae1f23; /* 漆の朱 */
+    font-size: 3.8rem;
+    color: var(--color-honshu);
     margin: 0;
     z-index: 12;
     font-weight: 900;
-    letter-spacing: 0.1em;
-    text-shadow: 0 0 15px rgba(174, 31, 35, 0.45), 2px 2px 4px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 15px rgba(158, 42, 43, 0.4), 2px 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .clear-info-wrap {
@@ -352,35 +385,35 @@ canvas {
 .clear-line {
     width: 60px;
     height: 1px;
-    background-color: #d4af37; /* 金糸 */
+    background-color: var(--color-chinkin); /* 金糸 */
 }
 
 .clear-info {
-    font-size: 1.3rem;
-    letter-spacing: 0.15em;
-    color: #e3c88d; /* 生成り */
+    font-size: 1.25rem;
+    letter-spacing: 0.25em;
+    color: var(--color-chinkin-pale);
     font-weight: 600;
 }
 
 /* ロード画面 */
 #loading-content {
-    background: rgba(26, 26, 26, 0.98);
-    border: 2px solid #d4af37; /* 金枠 */
-    border-radius: 4px;
+    background: rgba(20, 18, 17, 0.98);
+    border: 3px double var(--color-chinkin);
+    border-radius: 1px;
     padding: 30px 50px;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.85);
 }
 
 #loading-title {
-    font-size: 2.2rem;
-    color: #e3c88d; /* 生成り */
+    font-size: 2rem;
+    color: var(--color-washi-dark);
     margin: 0;
-    letter-spacing: 0.15em;
-    animation: pulse-light 1.8s infinite alternate ease-in-out;
+    letter-spacing: 0.25em;
+    animation: pulse-light 2.2s infinite alternate ease-in-out;
 }
 
 @keyframes pulse-light {
-    0% { opacity: 0.6; }
+    0% { opacity: 0.5; }
     100% { opacity: 1; }
 }
 
@@ -421,30 +454,30 @@ canvas {
 }
 
 #hp-container .label {
-    font-size: 1rem;
-    color: #e3c88d; /* 生成り */
+    font-size: 0.95rem;
+    color: var(--color-chinkin-pale);
     font-weight: bold;
-    letter-spacing: 0.15em;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.2em;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 #hp-frame {
     width: 100%;
     height: 16px;
-    background: rgba(17, 17, 17, 0.85); /* 墨漆 */
-    border: 2px solid #d4af37; /* 金の格子・枠線 */
+    background: var(--color-sumi-urushi-dark);
+    border: 1px solid var(--color-chinkin); /* 金の細枠 */
     padding: 2px;
     box-sizing: border-box;
-    border-radius: 2px;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+    border-radius: 1px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* 朱塗りゲージ */
+/* 本朱塗りゲージ */
 #hp-bar {
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #ae1f23 0%, #c31f23 100%);
-    transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    background: linear-gradient(90deg, var(--color-honshu-dark) 0%, var(--color-honshu) 100%);
+    transition: width 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* 所持銭 (画面中央上部、墨書きの和紙の札) */
@@ -453,18 +486,18 @@ canvas {
     top: 40px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.5rem;
-    color: #1a1a1a; /* 墨文字 */
+    font-size: 1.45rem;
+    color: var(--color-sumi-urushi-dark); /* 墨文字 */
     font-weight: bold;
-    background: #fcfaf2; /* 生成りの和紙 */
-    border: 2px solid #d4af37; /* 上品な金の外枠 */
+    background: var(--color-washi); /* 生成りの和紙 */
+    border: 1px solid var(--color-chinkin); /* 繊細な金の外枠 */
     padding: 8px 24px;
-    border-radius: 2px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 0, 0, 0.05);
+    border-radius: 1px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 0, 0, 0.08);
     cursor: pointer;
     z-index: 100;
     font-family: inherit;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
 }
 
 /* 第幾局カウンター (画面右下・墨札風) */
@@ -480,20 +513,22 @@ canvas {
 }
 
 #wave-container .wave-text {
-    font-size: 2.2rem;
-    color: #e3c88d; /* 生成り */
+    font-size: 2.1rem;
+    color: var(--color-chinkin-pale);
     font-weight: 800;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(212, 175, 55, 0.3);
+    letter-spacing: 0.15em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(197, 160, 89, 0.25);
 }
 
 #wave-container .enemy-count {
-    font-size: 1.1rem;
-    color: #fcfaf2; /* 和紙白 */
+    font-size: 1rem;
+    color: var(--color-washi-dark);
     font-weight: 600;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.1em;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.95);
 }
 
-/* 照準 (生成りと朱を基調) */
+/* 照準 (和紙色と本朱を基調) */
 #crosshair {
     position: absolute;
     top: 50%;
@@ -508,28 +543,28 @@ canvas {
 #crosshair::after {
     content: '';
     position: absolute;
-    background-color: rgba(227, 200, 141, 0.85); /* 生成り */
+    background-color: rgba(245, 242, 235, 0.75); /* 和紙色 */
 }
 
 #crosshair::before {
     top: 50%;
     left: 0;
     width: 100%;
-    height: 2px;
+    height: 1px;
     transform: translateY(-50%);
 }
 
 #crosshair::after {
     left: 50%;
     top: 0;
-    width: 2px;
+    width: 1px;
     height: 100%;
     transform: translateX(-50%);
 }
 
 #crosshair.hit-mark::before,
 #crosshair.hit-mark::after {
-    background-color: #ae1f23; /* 被弾・命中時は朱 */
+    background-color: var(--color-honshu); /* 被弾・命中時は本朱 */
 }
 
 /* 操作ヒント */
@@ -538,12 +573,12 @@ canvas {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 0.85rem;
-    color: rgba(227, 200, 141, 0.7); /* 生成り調の半透明 */
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+    font-size: 0.8rem;
+    color: var(--color-washi-dim);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.95);
     text-align: center;
     white-space: nowrap;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.15em;
 }
 
 /* ==========================================================================
@@ -555,14 +590,14 @@ canvas {
     top: 25%;
     right: 20px;
     width: 280px;
-    background: rgba(26, 26, 26, 0.95); /* 墨色の重厚感 */
+    background: rgba(20, 18, 17, 0.96); /* 墨漆の重厚感 */
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 2px solid #d4af37; /* 金色の細枠 */
-    border-radius: 4px;
+    border: 1px solid var(--color-chinkin); /* 金色の細枠 */
+    border-radius: 1px;
     padding: 16px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
-    color: #e3c88d; /* 生成り */
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75);
+    color: var(--color-chinkin-pale);
     z-index: 200;
     box-sizing: border-box;
 }
@@ -572,10 +607,10 @@ canvas {
     justify-content: space-between;
     align-items: center;
     padding: 12px 10px;
-    border-bottom: 1px dashed rgba(212, 175, 55, 0.25); /* 金箔の点線 */
+    border-bottom: 1px dashed rgba(197, 160, 89, 0.2); /* 金箔の点線 */
     cursor: pointer;
     font-size: 0.95rem;
-    transition: background 0.2s, border-left 0.2s, opacity 0.2s;
+    transition: background 0.3s, border-left 0.3s, opacity 0.3s;
     opacity: 0.8;
 }
 
@@ -584,14 +619,14 @@ canvas {
 }
 
 .shop-item:hover {
-    background: rgba(212, 175, 55, 0.05);
+    background: rgba(197, 160, 89, 0.04);
     opacity: 1;
 }
 
-/* 選択中のアイテム（左側に和風の朱色太線・半透明朱色背景） */
+/* 選択中のアイテム（左側に和風の本朱色太線・半透明本朱色背景） */
 .shop-item.selected {
-    background: rgba(174, 31, 35, 0.15); /* 半透明な朱色背景 */
-    border-left: 5px solid #ae1f23;       /* 朱色ボーダー */
+    background: rgba(158, 42, 43, 0.1); /* 半透明な本朱色背景 */
+    border-left: 3px solid var(--color-honshu); /* 本朱色ボーダー */
     opacity: 1;
     padding-left: 5px;
 }
@@ -599,11 +634,11 @@ canvas {
 /* 選択された項目のマークと金額を上品な金色へ同期 */
 .shop-item.selected .shop-marker,
 .shop-item.selected span:last-child {
-    color: #d4af37; /* 美しい金箔色 */
+    color: var(--color-chinkin);
 }
 
 .shop-marker {
-    color: #ae1f23; /* 朱マーク */
+    color: var(--color-honshu); /* 本朱マーク */
     font-weight: bold;
     display: inline-block;
     width: 15px;
@@ -614,7 +649,7 @@ canvas {
 }
 
 .shop-item span:last-child {
-    color: #d4af37; /* 所持金を金色へ */
+    color: var(--color-chinkin-dark);
     font-family: monospace;
 }
 
@@ -642,8 +677,8 @@ canvas {
     left: 50px;
     width: 110px;
     height: 110px;
-    background: rgba(26, 26, 26, 0.6);
-    border: 2px solid rgba(212, 175, 55, 0.4); /* 微かに輝く金の外枠 */
+    background: rgba(20, 18, 17, 0.5);
+    border: 1px solid rgba(197, 160, 89, 0.3); /* 微かに輝く金の外枠 */
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -655,8 +690,8 @@ canvas {
 #joystick-knob {
     width: 44px;
     height: 44px;
-    background: #e3c88d; /* 生成り */
-    border: 2px solid #d4af37; /* 金の意匠 */
+    background: var(--color-washi-dark); /* 和紙 */
+    border: 1px solid var(--color-chinkin); /* 金の意匠 */
     border-radius: 50%;
     pointer-events: none;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
@@ -667,29 +702,29 @@ canvas {
 .combat-btn,
 .touch-btn {
     position: absolute;
-    background: rgba(26, 26, 26, 0.9);
-    border: 2px solid #d4af37; /* 金色の格子調 */
-    color: #e3c88d; /* 生成り */
+    background: rgba(20, 18, 17, 0.85);
+    border: 1px solid var(--color-chinkin-dark); /* 金色の格子調 */
+    color: var(--color-chinkin-pale);
     border-radius: 50%;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
-    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.1s;
 }
 
 .combat-btn:active,
 .touch-btn:active {
-    background: #ae1f23; /* 押下時は朱塗りに変容 */
-    color: #ffffff;
-    border-color: #d4af37;
-    transform: scale(0.9);
+    background: var(--color-honshu-dark); /* 押下時は本朱塗りに変容 */
+    color: var(--color-washi);
+    border-color: var(--color-chinkin);
+    transform: scale(0.92);
 }
 
 #btn-shoot {
@@ -697,9 +732,9 @@ canvas {
     right: 60px;
     width: 76px;
     height: 76px;
-    font-size: 1.5rem;
-    background: rgba(174, 31, 35, 0.25); /* 半透明朱塗り */
-    border-color: #ae1f23;
+    font-size: 1.4rem;
+    background: rgba(158, 42, 43, 0.2); /* 半透明本朱塗り */
+    border-color: var(--color-honshu);
 }
 
 #btn-jump {
@@ -716,10 +751,10 @@ canvas {
     height: 54px;
 }
 
-/* ダッシュ有効時（和風の朱色背景と金色枠に変更） */
+/* ダッシュ有効時（本朱色背景と金色枠に変更） */
 #btn-dash.active {
-    background: #ae1f23;
-    border-color: #d4af37;
+    background: var(--color-honshu);
+    border-color: var(--color-chinkin);
 }
 
 #btn-shop {
@@ -739,7 +774,7 @@ canvas {
 }
 
 /* ==========================================================================
-   8. すごろくマップ画面 (#stage-select-menu)
+   8. すごろくマップ画面 (#stage-select-menu) - 絵巻物・幽玄セピア
    ========================================================================== */
 #stage-select-menu {
     position: fixed;
@@ -747,16 +782,30 @@ canvas {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: #111111; /* 漆黒 */
+    /* 古地図・絵巻物を開いたかのような、静寂を感じる暗滅の幽玄セピア調グラデーション */
+    background: radial-gradient(circle, #2a231d 0%, #171411 75%, #0b0a09 100%);
     z-index: 2050;
     display: none;
     flex-direction: row;
     align-items: stretch;
     justify-content: space-between;
     overflow: hidden;
-    color: #ffffff;
+    color: var(--color-washi);
     box-sizing: border-box;
     pointer-events: auto;
+}
+
+/* 霞がかった情緒あるエフェクト用の擬似要素 */
+#stage-select-menu::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(13, 12, 11, 0.5) 0%, transparent 15%, transparent 85%, rgba(13, 12, 11, 0.5) 100%);
+    pointer-events: none;
+    z-index: 2;
 }
 
 .map-viewport {
@@ -771,25 +820,26 @@ canvas {
 }
 
 .map-viewport::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
 }
 .map-viewport::-webkit-scrollbar-track {
-    background: #111111;
+    background: var(--color-sumi-urushi-dark);
 }
 .map-viewport::-webkit-scrollbar-thumb {
-    background: #ae1f23; /* 朱色のスクロールバー */
-    border-radius: 2px;
+    background: var(--color-honshu);
+    border-radius: 1px;
 }
 
 #map-container {
     position: relative;
     width: 2500px;
     height: 2500px;
-    background-color: #161616; /* 墨漆黒 */
+    background-color: transparent;
+    /* 薄い金箔格子の和紙グリッド */
     background-image: 
-        linear-gradient(rgba(212, 175, 55, 0.03) 2px, transparent 2px),
-        linear-gradient(90deg, rgba(212, 175, 55, 0.03) 2px, transparent 2px); /* 薄い金箔格子のグリッド */
+        linear-gradient(rgba(197, 160, 89, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(197, 160, 89, 0.02) 1px, transparent 1px);
     background-size: 80px 80px;
     overflow: visible;
     pointer-events: auto;
@@ -809,17 +859,17 @@ canvas {
 
 .map-route-line {
     fill: none;
-    stroke: #2a2a2a;
-    stroke-width: 6;
+    stroke: #332b24; /* 枯れた木の暗色 */
+    stroke-width: 4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    transition: stroke 0.3s, stroke-width 0.3s;
+    transition: stroke 0.4s, stroke-width 0.4s;
 }
 
 .map-route-line.unlocked {
-    stroke: #ae1f23; /* 朱色の街道 */
-    stroke-dasharray: 10, 10;
-    animation: route-flow 2s linear infinite;
+    stroke: var(--color-honshu); /* 本朱色の街道 */
+    stroke-dasharray: 8, 12;
+    animation: route-flow 3s linear infinite;
 }
 
 @keyframes route-flow {
@@ -828,15 +878,15 @@ canvas {
     }
 }
 
-/* プレイヤーアバター */
+/* プレイヤーアバター (木札・印をイメージした角丸のない設計) */
 #player-avatar {
     position: absolute;
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
     transform: translate(-50%, -50%);
     z-index: 10;
-    transition: left 0.4s ease, top 0.4s ease;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+    transition: left 0.5s ease, top 0.5s ease;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8));
     pointer-events: none;
 }
 
@@ -846,26 +896,26 @@ canvas {
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: #ae1f23; /* 朱塗り */
-    border: 2px solid #d4af37; /* 金箔縁 */
-    border-radius: 50%;
-    color: #ffffff;
+    background: var(--color-honshu); /* 本朱塗り */
+    border: 1px solid var(--color-chinkin); /* 金箔縁 */
+    border-radius: 1px; /* 直線美を保つ */
+    color: var(--color-washi);
     font-weight: bold;
-    font-size: 20px;
+    font-size: 18px;
     box-sizing: border-box;
-    animation: avatar-bounce 0.6s infinite alternate ease-in-out;
+    animation: avatar-bounce 0.8s infinite alternate ease-in-out;
 }
 
 @keyframes avatar-bounce {
     0% { transform: translateY(0); }
-    100% { transform: translateY(-8px); }
+    100% { transform: translateY(-6px); }
 }
 
-/* ステージマス */
+/* ステージマス (すごろくの角型木札・駒) */
 .stage-node {
     position: absolute;
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
     transform: translate(-50%, -50%);
     z-index: 5;
     cursor: pointer;
@@ -887,47 +937,47 @@ canvas {
     justify-content: center;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    font-size: 16px;
+    border-radius: 1px; /* 直線的な様式美に統一 */
+    font-size: 15px;
     font-weight: bold;
     box-sizing: border-box;
-    transition: background 0.3s, color 0.3s;
-    background: #262626;
-    color: #666;
-    border: 1px solid #333;
+    transition: background 0.4s, color 0.4s, border-color 0.4s;
+    background: var(--color-sumi-urushi-dark);
+    color: #554d45;
+    border: 1px solid #2e2620;
 }
 
 /* 未開放 */
 .stage-node.locked {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.4;
 }
 
 .stage-node.locked .node-icon {
-    background: #151515;
-    color: #444;
-    border-color: #222;
+    background: #0d0c0b;
+    color: #443c35;
+    border-color: #1a1512;
 }
 
 /* 開放済み */
 .stage-node.unlocked .node-icon {
-    background: #1a1a1a;
-    color: #e3c88d;
-    border: 2px solid #ae1f23; /* 朱塗りの外枠 */
+    background: var(--color-sumi-urushi);
+    color: var(--color-chinkin-pale);
+    border: 1px solid var(--color-honshu); /* 本朱塗りの外枠 */
 }
 
 /* クリア済み */
 .stage-node.cleared .node-icon {
-    background: #ae1f23; /* 朱塗り */
-    color: #ffffff;
-    border: 2px solid #d4af37; /* 金箔縁 */
+    background: var(--color-honshu); /* 本朱塗り */
+    color: var(--color-washi);
+    border: 1px solid var(--color-chinkin); /* 金箔縁 */
 }
 
 /* 選択中 */
 .stage-node.active .node-icon {
-    background: #d4af37; /* 金箔 */
-    color: #1a1a1a;
-    border: 2px solid #ffffff;
+    background: var(--color-chinkin); /* 金箔 */
+    color: var(--color-sumi-urushi-dark);
+    border: 1px solid var(--color-washi);
 }
 
 /* マップ詳細情報パネル */
@@ -937,10 +987,10 @@ canvas {
     top: 24px;
     width: 340px;
     max-height: calc(100% - 48px);
-    background: rgba(26, 26, 26, 0.96); /* 墨漆 */
-    border: 2px solid #d4af37; /* 金箔枠 */
-    border-radius: 4px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background: rgba(19, 17, 16, 0.97); /* 墨漆 */
+    border: 3px double var(--color-chinkin); /* 金箔二重枠 */
+    border-radius: 1px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -953,11 +1003,12 @@ canvas {
 
 .panel-header h3 {
     margin: 0 0 16px 0;
-    color: #e3c88d; /* 生成り */
-    font-size: 20px;
-    border-bottom: 2px solid #ae1f23; /* 漆朱の下線 */
-    padding-bottom: 10px;
+    color: var(--color-chinkin-pale);
+    font-size: 19px;
+    border-bottom: 2px solid var(--color-honshu); /* 漆朱の下線 */
+    padding-bottom: 12px;
     text-align: center;
+    letter-spacing: 0.2em;
 }
 
 .panel-body {
@@ -968,8 +1019,9 @@ canvas {
 
 .enemy-list-container h4 {
     margin: 0 0 10px 0;
-    font-size: 14px;
-    color: #e3c88d;
+    font-size: 13px;
+    color: var(--color-chinkin-pale);
+    letter-spacing: 0.15em;
 }
 
 #info-enemy-list {
@@ -981,14 +1033,14 @@ canvas {
 #info-enemy-list li {
     padding: 8px 14px;
     margin-bottom: 8px;
-    background: rgba(17, 17, 17, 0.85);
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    border-radius: 2px;
-    font-size: 15px;
+    background: rgba(13, 12, 11, 0.9);
+    border: 1px solid rgba(197, 160, 89, 0.15);
+    border-radius: 1px;
+    font-size: 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #fcfaf2;
+    color: var(--color-washi-dark);
 }
 
 .panel-footer {
@@ -1000,40 +1052,41 @@ canvas {
 .menu-btn {
     width: 100%;
     padding: 14px;
-    border-radius: 4px;
+    border-radius: 1px;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 15px;
     cursor: pointer;
     border: none;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.3s, transform 0.1s;
     font-family: inherit;
+    letter-spacing: 0.2em;
 }
 
 .start-btn {
-    background: #ae1f23; /* 朱色 */
-    color: #ffffff;
-    border: 2px solid #d4af37; /* 金枠 */
+    background: var(--color-honshu); /* 本朱色 */
+    color: var(--color-washi);
+    border: 1px solid var(--color-chinkin); /* 金枠 */
 }
 
 .start-btn:hover:not(:disabled) {
-    background: #c31f23;
+    background: var(--color-honshu-light);
 }
 
 .start-btn:disabled {
-    background: #2a2a2a;
-    color: #555;
-    border-color: #444;
+    background: #26211d;
+    color: #554d45;
+    border-color: #383029;
     cursor: not-allowed;
 }
 
 .back-btn {
-    background: #1a1a1a;
-    color: #e3c88d;
-    border: 2px solid #d4af37;
+    background: var(--color-sumi-urushi-dark);
+    color: var(--color-chinkin-pale);
+    border: 1px solid var(--color-chinkin);
 }
 
 .back-btn:hover {
-    background: #2a2a2a;
+    background: var(--color-sumi-urushi-light);
 }
 
 .menu-btn:active:not(:disabled) {
@@ -1047,10 +1100,10 @@ canvas {
     left: 24px;
     bottom: 24px;
     z-index: 100;
-    background: rgba(26, 26, 26, 0.92);
+    background: rgba(19, 17, 16, 0.95);
     padding: 12px;
-    border-radius: 50%;
-    border: 2px solid #d4af37; /* 金枠 */
+    border-radius: 1px; /* 格子調 */
+    border: 1px solid var(--color-chinkin); /* 金枠 */
     pointer-events: auto;
 }
 
@@ -1070,25 +1123,25 @@ canvas {
 }
 
 .ctrl-btn {
-    background: #1a1a1a;
-    border: 2px solid #d4af37; /* 金 */
-    color: #e3c88d; /* 生成り */
+    background: var(--color-sumi-urushi-dark);
+    border: 1px solid var(--color-chinkin-dark); /* 金 */
+    color: var(--color-chinkin-pale);
     font-size: 20px;
-    border-radius: 8px;
+    border-radius: 1px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.1s;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
     outline: none;
     user-select: none;
     font-family: inherit;
 }
 
 .ctrl-btn:active {
-    background: #ae1f23; /* 朱色 */
-    border-color: #d4af37;
-    color: #ffffff;
+    background: var(--color-honshu-dark); /* 本朱色 */
+    border-color: var(--color-chinkin);
+    color: var(--color-washi);
 }
 
 #ctrl-up { grid-area: up; }
@@ -1097,8 +1150,8 @@ canvas {
     grid-area: ok; 
     font-size: 13px; 
     font-weight: bold;
-    background: rgba(174, 31, 35, 0.25); /* 朱塗り半透明 */
-    border-color: #ae1f23;
+    background: rgba(158, 42, 43, 0.15); /* 本朱塗り半透明 */
+    border-color: var(--color-honshu);
 }
 #ctrl-right { grid-area: right; }
 #ctrl-down { grid-area: down; }
@@ -1113,7 +1166,7 @@ canvas {
     }
 
     .miyabi-title {
-        font-size: 2.2rem;
+        font-size: 2.1rem;
     }
 
     /* HUD縮小 */
@@ -1125,7 +1178,7 @@ canvas {
 
     #score-container {
         top: 20px;
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         padding: 6px 16px;
     }
 
@@ -1135,7 +1188,7 @@ canvas {
     }
 
     #wave-container .wave-text {
-        font-size: 1.7rem;
+        font-size: 1.6rem;
     }
 
     /* ショップメニュー縮小 */
@@ -1166,7 +1219,7 @@ canvas {
         right: 40px;
         width: 60px;
         height: 60px;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
     }
 
     #btn-jump {
@@ -1174,7 +1227,7 @@ canvas {
         right: 50px;
         width: 42px;
         height: 42px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     #btn-dash {
@@ -1182,7 +1235,7 @@ canvas {
         right: 115px;
         width: 42px;
         height: 42px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     #btn-shop {
@@ -1190,7 +1243,7 @@ canvas {
         left: 20px;
         width: 38px;
         height: 38px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 
     #btn-pause {
@@ -1198,7 +1251,7 @@ canvas {
         right: 20px;
         width: 38px;
         height: 38px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 
     /* すごろくマップ画面の上下分割レイアウト化 */
@@ -1227,9 +1280,9 @@ canvas {
         border-left: none;
         border-right: none;
         border-bottom: none;
-        border-top: 2px solid #d4af37; /* 上部の金箔枠 */
-        background: #111111;
-        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.6);
+        border-top: 3px double var(--color-chinkin); /* 上部の金箔枠 */
+        background: var(--color-sumi-urushi);
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.75);
         display: flex;
         flex-direction: column;
         pointer-events: auto;
@@ -1246,7 +1299,7 @@ canvas {
     #info-enemy-list li {
         padding: 6px 12px;
         margin-bottom: 4px;
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .panel-footer {
@@ -1256,7 +1309,7 @@ canvas {
 
     .panel-footer .menu-btn {
         padding: 10px;
-        font-size: 14px;
+        font-size: 13px;
         flex: 1;
     }
 
@@ -1265,8 +1318,8 @@ canvas {
         left: 12px;
         bottom: 12px;
         z-index: 110; 
-        background: rgba(26, 26, 26, 0.92);
-        border: 1px solid #555;
+        background: rgba(19, 17, 16, 0.95);
+        border: 1px solid var(--color-chinkin-dark);
         padding: 6px;
         pointer-events: auto;
     }
@@ -1283,6 +1336,6 @@ canvas {
     }
 
     #ctrl-ok {
-        font-size: 10px;
+        font-size: 9px;
     }
 }
