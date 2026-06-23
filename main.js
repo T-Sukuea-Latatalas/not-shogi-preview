@@ -43,13 +43,13 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
  * 各種マネージャーと連携させます。
  */
 function initGame() {
-    // 幽玄で情緒ある和の黄昏（宵の口）を再現する色彩設計
-    const skyColor = 0x1a0d22;         // 幽玄な宵の空（深みのある和紫）
-    const fogColor = 0x1a0d22;         // 宵闇に溶け込む環境フォグ
-    const sunColor = 0xff6b35;         // 茜さす朱色の陽光
-    const sunIntensity = 1.5;          // 朱色の光を際立たせる強度
-    const ambientColor = 0x412245;     // 影を彩るほのかな藤色
-    const ambientIntensity = 0.7;      // 陰影に深みを残す環境光強度
+    // 幽玄で情緒ある和の宵闇「一刻（マジックアワー）」を再現する色彩設計
+    const skyColor = 0x0f0817;         // 深遠な宵闇（濃紺紫）
+    const fogColor = 0x0f0817;         // 宵闇に融ける霞フォグ
+    const sunColor = 0xfc4118;         // 落ちゆく太陽の劇的な茜朱
+    const sunIntensity = 2.2;          // 鮮烈な陰影をつくる強めの光
+    const ambientColor = 0x1d132b;     // 夜が支配する静まり返った藤影
+    const ambientIntensity = 0.4;      // ほのかな陰影を醸す環境光
     const celestialColor = 0xd4af37;   // 宵闇に浮かぶ金色の月
     const celestialPos = new THREE.Vector3(40, 150, -120);
     const celestialRadius = 12;
@@ -63,10 +63,10 @@ function initGame() {
     STATE.introActive = false; 
     STATE.introUpdate = null;
 
-    // シーンとフォグ（和室の空気感を演出する環境霞）の設定
+    // シーンとフォグ（枯山水と竹林が静かに溶け込んでいく宵闇の霧）の設定
     STATE.scene = new THREE.Scene();
     STATE.scene.background = new THREE.Color(skyColor);
-    STATE.scene.fog = new THREE.FogExp2(fogColor, 0.0035);
+    STATE.scene.fog = new THREE.FogExp2(fogColor, 0.005); // 霞の密度を上げて奥行きを強調
 
     // 遠近カメラの設定
     STATE.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -86,7 +86,11 @@ function initGame() {
     const ambient = new THREE.AmbientLight(ambientColor, ambientIntensity); 
     STATE.scene.add(ambient);
     
-    // ソフトシャドウ投影対応ディレクショナル光源（陽光）
+    // 空（天窓）からの微光と地平の暗がりを再現する半球ライトを追加して立体感を表現
+    const hemisphere = new THREE.HemisphereLight(0x351d4a, 0x0f0817, 0.6);
+    STATE.scene.add(hemisphere);
+
+    // ソフトシャドウ投影対応ディレクショナル光源（茜さす陽光）
     STATE.sun = new THREE.DirectionalLight(sunColor, sunIntensity); 
     STATE.sun.position.set(60, 80, 40); 
     STATE.sun.castShadow = true; 
@@ -102,7 +106,7 @@ function initGame() {
     STATE.sun.shadow.bias = -0.0005;
     STATE.scene.add(STATE.sun);
 
-    // 空に浮かぶ発光天体球の配置
+    // 空に浮かぶ発光天体球（金色の月）の配置
     const celestialGeom = new THREE.SphereGeometry(celestialRadius, 32, 32);
     const celestialMat = new THREE.MeshBasicMaterial({ color: celestialColor, fog: false });
     const celestialMesh = new THREE.Mesh(celestialGeom, celestialMat);
@@ -110,34 +114,48 @@ function initGame() {
     STATE.scene.add(celestialMesh);
     STATE.celestialBody = celestialMesh;
 
-    // 空中の和風流れ雲群の配置
-    const cloudCount = 12 + Math.floor(Math.random() * 4);
+    // 空中の和風流れ雲群（大和絵や琳派に見られる「たなびく霞」の表現）
+    const cloudCount = 14 + Math.floor(Math.random() * 5);
+    const traditionalColors = [0xe6b3b3, 0xcbb1cf, 0xdfcaaa, 0xfaafbe]; // 淡桜, 薄藤, 白練/淡金, 茜桜
     for (let i = 0; i < cloudCount; i++) {
         const cloudGroup = new THREE.Group();
-        const partCount = 3 + Math.floor(Math.random() * 4);
-        const cloudColor = 0xfaafbe; // 茜雲や薄桜を思わせる情緒ある桜色
-        const cloudOpacity = 0.25;   // 宵闇に美しく透ける不透明度
+        const partCount = 5 + Math.floor(Math.random() * 5);
+        const cloudColor = traditionalColors[i % traditionalColors.length];
+        const cloudOpacity = 0.12 + Math.random() * 0.12;   // 宵闇に美しく透ける不透明度
 
         for (let j = 0; j < partCount; j++) {
-            const rx = 5 + Math.random() * 8;
-            const ry = 2.5 + Math.random() * 3.5;
-            const rz = 5 + Math.random() * 8;
+            // 日本画の「たなびく霞」を模し、横長に大きく引き伸ばして平坦にしたスケール
+            const rx = 18 + Math.random() * 15;
+            const ry = 0.4 + Math.random() * 0.8;
+            const rz = 4 + Math.random() * 6;
+            
             const geom = new THREE.DodecahedronGeometry(1, 1);
             geom.scale(rx, ry, rz);
 
+            // 重なり部分がジャギーにならず美しく混ざり合うよう depthWrite: false に設定
             const mat = new THREE.MeshBasicMaterial({
-                color: cloudColor, transparent: true, opacity: cloudOpacity, fog: false
+                color: cloudColor, 
+                transparent: true, 
+                opacity: cloudOpacity, 
+                fog: false,
+                depthWrite: false
             });
             const part = new THREE.Mesh(geom, mat);
-            part.position.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 14);
+            
+            // 水平方向へなだらかにつなぎ合わせるための配置補正
+            const offsetX = (j - (partCount - 1) / 2) * (rx * 0.6) + (Math.random() - 0.5) * 4;
+            const offsetY = (Math.random() - 0.5) * 0.5;
+            const offsetZ = (Math.random() - 0.5) * 3;
+            part.position.set(offsetX, offsetY, offsetZ);
+            
             cloudGroup.add(part);
         }
 
         const cx = (Math.random() - 0.5) * 600;
-        const cy = 60 + Math.random() * 20;
+        const cy = 40 + Math.random() * 25; // やや低空にたなびかせて世界観の密度を向上
         const cz = (Math.random() - 0.5) * 500;
         cloudGroup.position.set(cx, cy, cz);
-        cloudGroup.userData = { speed: 0.04 + Math.random() * 0.08 };
+        cloudGroup.userData = { speed: 0.02 + Math.random() * 0.04 }; // 静寂を損なわない優美でゆっくりとした動き
 
         STATE.scene.add(cloudGroup);
         STATE.clouds.push(cloudGroup);
@@ -514,7 +532,7 @@ function startPracticeStage(type) {
 }
 
 /**
- * 盤上支配者（王・キング・ヨット等）の出現時に気品を兼ね備えた和風の演出と、迫力あるカメラワークを実行します。
+ * 盤上支配者（王・キング・ヨット等）の出現時に、一瞬の静寂と劇的な高揚感を与える和風演出と映画的なカメラワークを実行します。
  */
 function triggerBossIntro(boss) {
     STATE.introActive = true;
@@ -539,7 +557,7 @@ function triggerBossIntro(boss) {
     introOverlay.style.flexDirection = 'column';
     introOverlay.style.justifyContent = 'center';
     introOverlay.style.alignItems = 'center';
-    introOverlay.style.background = 'radial-gradient(circle, rgba(174, 31, 35, 0.2) 0%, rgba(10, 5, 15, 0.95) 100%)';
+    introOverlay.style.background = 'radial-gradient(circle, rgba(140, 15, 20, 0.25) 0%, rgba(10, 5, 15, 0.98) 100%)';
     introOverlay.style.pointerEvents = 'none';
     introOverlay.style.zIndex = '9999';
     introOverlay.style.opacity = '0';
@@ -556,19 +574,77 @@ function triggerBossIntro(boss) {
         displayName = boss.type;
     }
 
+    // 筆文字風タイトルと、時間差アニメーションによる「静寂から衝撃への間」の演出
     introOverlay.innerHTML = `
-        <div style="text-align: center; transform: scale(0.9); animation: bossFadeIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;">
-            <div style="font-size: 16px; color: #d4af37; letter-spacing: 0.6em; text-transform: uppercase; font-family: sans-serif; margin-bottom: 20px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);">SUDDEN ATTACK</div>
-            <div style="font-size: 42px; color: #ae1f23; font-weight: 900; font-family: 'Sawarabi Mincho', 'Noto Serif JP', '游明朝', 'Yu Mincho', serif; letter-spacing: 0.25em; text-shadow: 0 0 25px rgba(174, 31, 35, 1), 2px 2px 4px #000; border-top: 2px solid #ae1f23; border-bottom: 2px solid #ae1f23; padding: 25px 60px; background: rgba(10, 5, 15, 0.7); box-shadow: inset 0 0 30px rgba(174, 31, 35, 0.3); border-image: linear-gradient(to right, transparent, #ae1f23, transparent) 1;">
+        <div class="intro-content">
+            <div class="intro-sub-top">SUDDEN ATTACK</div>
+            <div class="intro-main-title">
                 急襲 ── 盤上ノ支配者『${displayName}』顕現
             </div>
-            <div style="font-size: 15px; color: #ffffff; letter-spacing: 0.9em; margin-top: 20px; opacity: 0.9; font-family: 'Sawarabi Mincho', 'Noto Serif JP', serif;">いざ、尋常に勝負せよ</div>
+            <div class="intro-sub-bottom">いざ、尋常に勝負せよ</div>
         </div>
         <style>
-            @keyframes bossFadeIn {
-                0% { transform: scale(0.8); filter: blur(10px); opacity: 0; }
-                50% { filter: blur(2px); }
-                100% { transform: scale(1); filter: blur(0); opacity: 1; }
+            .intro-content {
+                text-align: center;
+                opacity: 0;
+                transform: scale(0.95);
+                animation: introEmerge 2.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards; /* 0.8秒の間（静寂）を持たせてから出現 */
+            }
+            .intro-sub-top {
+                font-size: 15px;
+                color: #d4af37;
+                letter-spacing: 0.8em;
+                text-transform: uppercase;
+                font-family: 'Times New Roman', serif;
+                margin-bottom: 25px;
+                text-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+                opacity: 0;
+                animation: textSlideDown 1.5s cubic-bezier(0.16, 1, 0.3, 1) 1.2s forwards;
+            }
+            .intro-main-title {
+                font-size: 44px;
+                color: #e03030;
+                font-weight: 900;
+                font-family: 'Sawarabi Mincho', 'Noto Serif JP', 'Yu Mincho', serif;
+                letter-spacing: 0.3em;
+                text-shadow: 0 0 35px rgba(224, 48, 48, 0.7), 2px 2px 8px #050208;
+                border-top: 1px solid rgba(212, 175, 55, 0.4);
+                border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+                padding: 30px 80px;
+                background: linear-gradient(90deg, rgba(10,5,15,0) 0%, rgba(10,5,15,0.85) 50%, rgba(10,5,15,0) 100%);
+                box-shadow: inset 0 0 50px rgba(224, 48, 48, 0.15);
+                margin: 0 auto;
+                max-width: 80%;
+                opacity: 0;
+                filter: blur(10px);
+                animation: titleImpact 2.0s cubic-bezier(0.16, 1, 0.3, 1) 1.6s forwards;
+            }
+            .intro-sub-bottom {
+                font-size: 16px;
+                color: #ffffff;
+                letter-spacing: 1.0em;
+                margin-top: 25px;
+                opacity: 0;
+                font-family: 'Sawarabi Mincho', 'Noto Serif JP', serif;
+                text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+                animation: textSlideUp 1.8s cubic-bezier(0.16, 1, 0.3, 1) 2.2s forwards;
+            }
+            @keyframes introEmerge {
+                0% { opacity: 0; transform: scale(0.95); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+            @keyframes textSlideDown {
+                0% { opacity: 0; transform: translateY(-20px); }
+                100% { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes titleImpact {
+                0% { opacity: 0; filter: blur(15px); transform: scale(1.08); }
+                30% { opacity: 0.5; filter: blur(5px); }
+                100% { opacity: 1; filter: blur(0); transform: scale(1); }
+            }
+            @keyframes textSlideUp {
+                0% { opacity: 0; transform: translateY(20px); }
+                100% { opacity: 0.95; transform: translateY(0); }
             }
         </style>
     `;
@@ -579,12 +655,12 @@ function triggerBossIntro(boss) {
         introOverlay.style.opacity = '1';
     });
 
-    // 迫力ある和風ズームイン演出カメラワーク
+    // 映画的なカメラワーク（前半は天窓を静かに見上げ、後半はイージングを効かせて一気に急接近）
     const originalPos = new THREE.Vector3(0, GROUND_Y + EYE_HEIGHT, 0);
     const originalRotation = new THREE.Euler().copy(STATE.camera.rotation);
     
     const startTime = Date.now();
-    const duration = 4000; 
+    const duration = 4500; // 演出時間を4.5秒にやや拡張
     
     STATE.introUpdate = () => {
         const elapsed = Date.now() - startTime;
@@ -593,24 +669,33 @@ function triggerBossIntro(boss) {
         if (boss && boss.mesh) {
             const bossPos = boss.mesh.position.clone();
             
-            if (progress < 0.4) {
-                // 前半：ゆっくりと天（金色の月）を見上げる幽玄な動き
-                const subProg = progress / 0.4;
-                const lookTarget = new THREE.Vector3(0, 80, -60).lerp(new THREE.Vector3(bossPos.x, bossPos.y + 8, bossPos.z), subProg);
-                STATE.camera.position.copy(originalPos);
+            if (progress < 0.35) {
+                // 前半（0.35まで）：静まり返った宵の空（月）を静かに見上げる幽玄な漂い
+                const subProg = progress / 0.35;
+                const t = Math.sin(subProg * Math.PI / 2); // なめらかなSine曲線
+                const lookTarget = new THREE.Vector3(0, 80, -120).lerp(new THREE.Vector3(0, 40, -40), t);
+                STATE.camera.position.copy(originalPos).add(new THREE.Vector3(0, 0.2 * t, 0.4 * t));
                 STATE.camera.lookAt(lookTarget);
             } else {
-                // 後半：急激にボスの眼前に向かってカメラが迫るダイナミックなズーム
-                const subProg = (progress - 0.4) / 0.6;
-                const t = 1 - Math.pow(1 - subProg, 3); // Cubic Out イージング
+                // 後半（0.35以降）：緩急のついた五次式（Quintic Out）で一気にボスの足元へ迫る
+                const subProg = (progress - 0.35) / 0.65;
+                const t = 1 - Math.pow(1 - subProg, 5); // 緩急の大きいイージング
                 
-                const zoomCamPos = new THREE.Vector3().lerpVectors(
-                    originalPos, 
-                    bossPos.clone().add(new THREE.Vector3(0, 3.5, 12)), 
-                    t * 0.8
+                // ボスを煽るようにローアングルからダイナミックに捉えるカメラ座標を算出
+                const cameraOffset = new THREE.Vector3(0, 1.8, 8);
+                cameraOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), (1 - t) * 0.4); // 回り込むような微細な回転
+                
+                const targetCamPos = bossPos.clone().add(cameraOffset);
+                const curCamPos = new THREE.Vector3().lerpVectors(
+                    originalPos.clone().add(new THREE.Vector3(0, 0.2, 0.4)), 
+                    targetCamPos, 
+                    t
                 );
-                STATE.camera.position.copy(zoomCamPos);
-                STATE.camera.lookAt(bossPos.x, bossPos.y + 1.2, bossPos.z);
+                STATE.camera.position.copy(curCamPos);
+                
+                // カメラの注視点はボスの心臓部
+                const lookTarget = new THREE.Vector3(bossPos.x, bossPos.y + 1.5, bossPos.z);
+                STATE.camera.lookAt(lookTarget);
             }
         }
         
