@@ -1,4 +1,5 @@
-import { STATE, PLAYER, UPGRADE_COSTS } from './constants.js';
+import { STATE, PLAYER, UPGRADE_COSTS, upgradeKeys } from './constants.js';
+import { resetPlayerStatus, resetGameProgress, savePlayerData } from './save-manager.js';
 
 export class UIManager {
     constructor(callbacks) {
@@ -12,6 +13,7 @@ export class UIManager {
     init() {
         try {
             this.setupShopEvents();
+            this.setupDebugPanelEvents();
         } catch (error) {
             console.error("UIManager initialization failed:", error);
         }
@@ -35,6 +37,114 @@ export class UIManager {
         });
     }
 
+    /**
+     * デバッグ画面のコントロール群に対するイベントリスナーを設定し、
+     * ゲーム内データ（PLAYER, STATE）へのリアルタイム同期と、
+     * 即時のHUD描画更新（updateUI）およびセーブを実行します。
+     */
+    setupDebugPanelEvents() {
+        // --- スイッチ（チェックボックス） ---
+        const godModeCheck = document.getElementById('debug-god-mode');
+        if (godModeCheck) {
+            godModeCheck.addEventListener('change', (e) => {
+                STATE.isGodMode = e.target.checked;
+                this.updateUI();
+            });
+        }
+
+        const freezeEnemiesCheck = document.getElementById('debug-freeze-enemies');
+        if (freezeEnemiesCheck) {
+            freezeEnemiesCheck.addEventListener('change', (e) => {
+                STATE.isEnemiesFrozen = e.target.checked;
+                this.updateUI();
+            });
+        }
+
+        const creativeModeCheck = document.getElementById('debug-creative-mode');
+        if (creativeModeCheck) {
+            creativeModeCheck.addEventListener('change', (e) => {
+                STATE.isCreativeMode = e.target.checked;
+                this.updateUI();
+            });
+        }
+
+        // --- スライドバー（レンジ） ---
+        const hpRange = document.getElementById('range-debug-hp');
+        if (hpRange) {
+            hpRange.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                PLAYER.hp = val;
+                PLAYER.maxHp = val; // HPの最大上限値も同時に引き上げ、ゲージ比率を維持
+                this.updateUI();
+                savePlayerData();
+            });
+        }
+
+        const powerRange = document.getElementById('range-debug-power');
+        if (powerRange) {
+            powerRange.addEventListener('input', (e) => {
+                PLAYER.power = parseFloat(e.target.value);
+                this.updateUI();
+                savePlayerData();
+            });
+        }
+
+        const rateRange = document.getElementById('range-debug-rate');
+        if (rateRange) {
+            rateRange.addEventListener('input', (e) => {
+                PLAYER.fireRate = parseFloat(e.target.value);
+                this.updateUI();
+                savePlayerData();
+            });
+        }
+
+        const speedRange = document.getElementById('range-debug-speed');
+        if (speedRange) {
+            speedRange.addEventListener('input', (e) => {
+                PLAYER.speed = parseFloat(e.target.value);
+                this.updateUI();
+                savePlayerData();
+            });
+        }
+
+        const scoreRange = document.getElementById('range-debug-score');
+        if (scoreRange) {
+            scoreRange.addEventListener('input', (e) => {
+                STATE.score = parseInt(e.target.value, 10);
+                this.updateUI();
+                savePlayerData();
+            });
+        }
+
+        // --- 各種機能・制御ボタン ---
+        const resetStatusBtn = document.getElementById('btn-debug-reset-status');
+        if (resetStatusBtn) {
+            resetStatusBtn.addEventListener('click', () => {
+                resetPlayerStatus();
+                this.updateUI();
+                this.showMsg("能力を初期化しました");
+            });
+        }
+
+        const resetProgressBtn = document.getElementById('btn-debug-reset-progress');
+        if (resetProgressBtn) {
+            resetProgressBtn.addEventListener('click', () => {
+                resetGameProgress();
+                this.updateUI();
+                this.showMsg("進捗を初期化しました");
+            });
+        }
+
+        const closeBtn = document.getElementById('btn-debug-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                STATE.isDebugMode = false;
+                STATE.debugMenuOpen = false;
+                this.updateUI();
+            });
+        }
+    }
+
     toggleShop() {
         if (!STATE.stageActive || STATE.isPaused || STATE.introActive) return;
         STATE.shopOpen = !STATE.shopOpen;
@@ -51,9 +161,9 @@ export class UIManager {
     handleShopWheel(deltaY) {
         if (!STATE.shopOpen) return;
         
-        // HTML上の実際の要素数に基づいて上限を決定（要素がなければデフォルトで4）
+        // HTML上の実際の要素数に基づいて上限を決定
         const shopItems = document.querySelectorAll('.shop-item');
-        const itemCount = shopItems.length || 4;
+        const itemCount = shopItems.length || 5;
 
         if (deltaY > 0) {
             this.selectedShopIndex = (this.selectedShopIndex + 1) % itemCount;
@@ -129,9 +239,11 @@ export class UIManager {
 
     updateUI() {
         try {
+            // HUD更新（HPゲージおよび所持銭）
             const hpBar = document.getElementById('hp-bar');
             if (hpBar) {
-                hpBar.style.width = Math.max(0, (PLAYER.hp / PLAYER.maxHp * 100)) + "%";
+                const ratio = PLAYER.maxHp > 0 ? (PLAYER.hp / PLAYER.maxHp * 100) : 0;
+                hpBar.style.width = Math.max(0, ratio) + "%";
             }
             const scoreVal = document.getElementById('score-val');
             if (scoreVal) {
@@ -146,6 +258,75 @@ export class UIManager {
                 if (costEl) costEl.innerText = UPGRADE_COSTS[k];
             }
             this.updateShopHighlight();
+
+            // --- デバッグ画面自体の表示制御 ---
+            const debugPanel = document.getElementById('debug-menu-panel');
+            if (debugPanel) {
+                debugPanel.style.display = (STATE.isDebugMode || STATE.debugMenuOpen) ? 'block' : 'none';
+            }
+
+            // --- デバッグ画面内のコントロールとの同期（データからUIへの同期） ---
+            const godModeCheck = document.getElementById('debug-god-mode');
+            if (godModeCheck) {
+                godModeCheck.checked = !!STATE.isGodMode;
+            }
+
+            const freezeEnemiesCheck = document.getElementById('debug-freeze-enemies');
+            if (freezeEnemiesCheck) {
+                freezeEnemiesCheck.checked = !!STATE.isEnemiesFrozen;
+            }
+
+            const creativeModeCheck = document.getElementById('debug-creative-mode');
+            if (creativeModeCheck) {
+                creativeModeCheck.checked = !!STATE.isCreativeMode;
+            }
+
+            // 各種スライドバーの値とラベル数値を最新に設定
+            const hpRange = document.getElementById('range-debug-hp');
+            const hpVal = document.getElementById('val-debug-hp');
+            if (hpRange) {
+                hpRange.value = PLAYER.hp;
+            }
+            if (hpVal) {
+                hpVal.innerText = Math.round(PLAYER.hp);
+            }
+
+            const powerRange = document.getElementById('range-debug-power');
+            const powerVal = document.getElementById('val-debug-power');
+            if (powerRange) {
+                powerRange.value = PLAYER.power;
+            }
+            if (powerVal) {
+                powerVal.innerText = PLAYER.power;
+            }
+
+            const rateRange = document.getElementById('range-debug-rate');
+            const rateVal = document.getElementById('val-debug-rate');
+            if (rateRange) {
+                rateRange.value = PLAYER.fireRate;
+            }
+            if (rateVal) {
+                rateVal.innerText = PLAYER.fireRate;
+            }
+
+            const speedRange = document.getElementById('range-debug-speed');
+            const speedVal = document.getElementById('val-debug-speed');
+            if (speedRange) {
+                speedRange.value = PLAYER.speed;
+            }
+            if (speedVal) {
+                speedVal.innerText = PLAYER.speed.toFixed(2);
+            }
+
+            const scoreRange = document.getElementById('range-debug-score');
+            const scoreValDebug = document.getElementById('val-debug-score');
+            if (scoreRange) {
+                scoreRange.value = STATE.score;
+            }
+            if (scoreValDebug) {
+                scoreValDebug.innerText = STATE.score;
+            }
+
         } catch (error) {
             console.error("Failed to update UI:", error);
         }
