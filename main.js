@@ -44,7 +44,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
  */
 function initGame() {
     // 幽玄で情緒ある和の宵闇（薄明かりの藍色空）を再現する色彩設計
-    const skyColor = 0x112233;         // 情緒ある深い瑠璃色・藍鉄 of 空
+    const skyColor = 0x112233;         // 情緒ある深い瑠璃色・藍鉄の空
     const fogColor = 0x112233;         // 瑠璃紺に融ける霞フォグ
     const sunColor = 0xfff3da;         // 柔らかな月明かり・灯火調の温かい白金
     const sunIntensity = 1.2;          // 自然な陰影を落とす上品な光
@@ -99,10 +99,10 @@ function initGame() {
     STATE.sun.shadow.camera.near = 0.5;
     STATE.sun.shadow.camera.far = 200;
     const d = 60;
-    STATE.sun.shadow.shadow.camera.left = -d;
-    STATE.sun.shadow.shadow.camera.right = d;
-    STATE.sun.shadow.shadow.camera.top = d;
-    STATE.sun.shadow.shadow.camera.bottom = -d;
+    STATE.sun.shadow.camera.left = -d;
+    STATE.sun.shadow.camera.right = d;
+    STATE.sun.shadow.camera.top = d;
+    STATE.sun.shadow.camera.bottom = -d;
     STATE.sun.shadow.bias = -0.0005;
     STATE.scene.add(STATE.sun);
 
@@ -294,6 +294,20 @@ function initGame() {
     });
     uiManager.init();
 
+    // 要件2: 戦闘中以外（非戦闘ステージ選択画面やポーズ画面）でもショップを自由に開閉・操作できるように制限をオーバーライド
+    UIManager.prototype.toggleShop = function() {
+        if (STATE.introActive) return; // ボスイントロ中のみ開閉を制限
+        STATE.shopOpen = !STATE.shopOpen;
+        const shopMenu = document.getElementById('shop-menu');
+        if (shopMenu) {
+            shopMenu.style.display = STATE.shopOpen ? 'block' : 'none';
+        }
+        if (STATE.shopOpen) {
+            PLAYER.isShooting = false;
+            this.updateShopHighlight();
+        }
+    };
+
     // InputHandler のインスタンス化と初期化
     inputHandler = new InputHandler({
         onToggleShop: () => {
@@ -354,12 +368,11 @@ function initGame() {
 
     // 進行度（クリア済みインデックス配列）を外部および MapSystem に返す
     window.getClearedStages = function() {
-        const clearedNums = getClearedStages().map(num => Number(num));
+        const clearedNums = getClearedStages();
         const clearedIndices = [];
         if (STATE.stages) {
             STATE.stages.forEach((stg, idx) => {
-                const stageNum = Number(stg.stage);
-                if (clearedNums.includes(stageNum)) {
+                if (clearedNums.includes(stg.stage)) {
                     clearedIndices.push(idx);
                 }
             });
@@ -422,6 +435,10 @@ function cleanUpStage() {
     STATE.isGameOver = false;
     STATE.introActive = false;
     STATE.introUpdate = null;
+    STATE.shopOpen = false; // 要件2: ステージを抜ける際はショップを確実に閉じる
+    
+    const shopMenu = document.getElementById('shop-menu');
+    if (shopMenu) shopMenu.style.display = 'none';
 
     if (inputHandler) {
         inputHandler.resetInputs();
@@ -533,7 +550,7 @@ function startPracticeStage(type) {
 }
 
 /**
- * 盤上支配者（王・キング・ヨット等）の出現時に、一瞬の静寂と劇的な高揚感を与える和風演出と映画的なカメラワークを実行します。
+ * 盤面支配者（王・キング・ヨット等）の出現時に、一瞬の静寂と劇的な高揚感を与える和風演出と映画的なカメラワークを実行します。
  */
 function triggerBossIntro(boss) {
     STATE.introActive = true;
@@ -714,7 +731,10 @@ function triggerBossIntro(boss) {
             if (uiManager) uiManager.updateUI();
             
             if (inputHandler && !inputHandler.currentTouchMode) {
-                document.body.requestPointerLock();
+                // ショップが開いていない場合のみポインターロックを要求
+                if (!STATE.shopOpen) {
+                    document.body.requestPointerLock();
+                }
             }
         }
     };
@@ -790,7 +810,10 @@ function startStage(stageData) {
         if (uiManager) uiManager.updateUI();
 
         if (inputHandler && !inputHandler.currentTouchMode) {
-            document.body.requestPointerLock();
+            // ショップが開いていない場合のみポインターロックを要求
+            if (!STATE.shopOpen) {
+                document.body.requestPointerLock();
+            }
         }
     }
 }
@@ -885,13 +908,16 @@ function togglePause() {
  */
 function pauseGame() {
     if (!STATE.stageActive || STATE.isGameOver || STATE.isPaused) return;
+    
+    /* 要件2: 一時停止時でもショップの開閉・操作状態を邪魔しないため、強制的に閉じる処理を削除 */
+    /*
     if (STATE.shopOpen) {
         STATE.shopOpen = false;
         const shopMenu = document.getElementById('shop-menu');
-        if (shopMenu) {
-            shopMenu.style.display = 'none';
-        }
+        if (shopMenu) shopMenu.style.display = 'none';
     }
+    */
+    
     STATE.isPaused = true;
     const pauseMenu = document.getElementById('pause-menu');
     if (pauseMenu) pauseMenu.style.display = 'flex';
@@ -921,7 +947,9 @@ function resumeGame() {
     STATE.isPaused = false;
     const pauseMenu = document.getElementById('pause-menu');
     if (pauseMenu) pauseMenu.style.display = 'none';
-    if (inputHandler && !inputHandler.currentTouchMode) {
+    
+    // 要件2: ショップが開いている場合はポインターロックを要求せずマウス操作を維持する
+    if (inputHandler && !inputHandler.currentTouchMode && !STATE.shopOpen) {
         document.body.requestPointerLock();
     }
     if (uiManager) uiManager.updateUI();
@@ -1003,6 +1031,25 @@ export function takeDamage(amt) {
 function animate() {
     requestAnimationFrame(animate);
 
+    // 要件1: プレイヤーの「自動回復」処理の実装
+    // 一時停止中、ゲームオーバー、ボスイントロ中などは回復しないように制御
+    if (STATE.stageActive && !STATE.isPaused && !STATE.isGameOver && !STATE.introActive) {
+        if (PLAYER.regen > 0) {
+            const now = Date.now();
+            if (!STATE.lastRegenTime) {
+                STATE.lastRegenTime = now;
+            }
+            if (now - STATE.lastRegenTime >= 5000) {
+                const prevHp = PLAYER.hp;
+                PLAYER.hp = Math.min(PLAYER.maxHp, PLAYER.hp + (2 * PLAYER.regen));
+                if (PLAYER.hp > prevHp && uiManager) {
+                    uiManager.updateUI();
+                }
+                STATE.lastRegenTime = now;
+            }
+        }
+    }
+
     if (STATE.isPaused || STATE.isGameOver) {
         if (STATE.renderer && STATE.scene && STATE.camera) {
             STATE.renderer.render(STATE.scene, STATE.camera);
@@ -1027,6 +1074,18 @@ function animate() {
         return;
     }
 
+    // 要件3: デバッグ操作などによるプレイヤー各種上限・下限パラメータ等の即時整合性同期と物理反映の保証
+    if (STATE.isDebugMode || STATE.debugMenuOpen) {
+        if (PLAYER.hp > PLAYER.maxHp) {
+            PLAYER.maxHp = PLAYER.hp;
+        }
+        // クリエイティブ（空中浮遊移動）有効時は即時に落下物理を遮断
+        if (STATE.isCreativeMode) {
+            PLAYER.isGrounded = true;
+            PLAYER.vy = 0;
+        }
+    }
+
     // 1. プレイヤーの移動とクリエイティブ/物理演算補正
     const keys = (inputHandler && inputHandler.keys) ? inputHandler.keys : {};
     const moveDir = new THREE.Vector3();
@@ -1045,6 +1104,7 @@ function animate() {
     const camEuler = new THREE.Euler(0, STATE.camera.rotation.y, 0, 'YXZ');
     moveDir.applyEuler(camEuler);
 
+    // 要件3: デバッグ専用画面のスライドバーで PLAYER.speed が変更された際、この箇所で即時新しい数値が移動に反映されます
     let currentSpeed = PLAYER.speed;
     if (keys['ShiftLeft'] || keys['ShiftRight'] || STATE.dashActive) {
         currentSpeed *= DASH_MULT;
@@ -1096,6 +1156,7 @@ function animate() {
     }
 
     // 2. 自動射撃
+    // 要件3: デバッグ画面で PLAYER.fireRate が変更された際、この射撃可能判定（ミリ秒）に即座に新しい連射性能が同期して機能します
     if (PLAYER.isShooting && STATE.playerStunTime <= 0) {
         const now = Date.now();
         if (now - PLAYER.lastShot >= PLAYER.fireRate) {
@@ -1168,6 +1229,7 @@ function animate() {
                     if (dist < threshold) {
                         hit = true;
                         
+                        // 要件3: デバッグ専用画面で攻撃威力（PLAYER.power）を変更した際、即座に敵に与えるダメージに反映されます
                         const isDead = enemy.takeHit(PLAYER.power);
                         
                         if (uiManager) {
