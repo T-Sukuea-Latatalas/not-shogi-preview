@@ -131,8 +131,23 @@ function updateStageInfoPanel() {
     if (panel) {
         panel.style.display = 'flex';
         const coords = nodeCoords[currentIndex];
-        if (coords) {
-            // パネルの位置をアクティブなアイコンの直上に配置（吹き出しポップアップ化）
+        
+        // モバイルかつ縦画面の判定 (CSS側のドッキング固定レイアウトとインライン指定の競合を防ぐためのクリーンアップ処理)
+        const isMobilePortrait = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+
+        if (isMobilePortrait) {
+            // モバイル縦画面時はインラインスタイルをリセットしてCSSにスタイリングを完全委託する
+            panel.style.position = '';
+            panel.style.left = '';
+            panel.style.top = '';
+            panel.style.bottom = '';
+            panel.style.right = '';
+            panel.style.transform = '';
+            panel.style.zIndex = '';
+            panel.style.borderRadius = '';
+            panel.style.boxShadow = '';
+        } else if (coords) {
+            // デスクトップ環境：アクティブなアイコンの直上に配置（吹き出しポップアップ化）
             panel.style.position = 'absolute';
             panel.style.right = 'auto';
             panel.style.top = 'auto';
@@ -299,7 +314,7 @@ function updateUnlockState() {
         }
     });
 
-    // SVG接続ルート線の更新（第一局から第二局、および以降のラインが消える現象を徹底修正）
+    // SVG接続ルート線の更新（未クリア初期ロード時でも進行ルート線が可視化されるようにロジックを最適化）
     MapSystem.stagesData.forEach((stage, idx) => {
         const line = document.getElementById(`route-line-${idx}`);
         if (line) {
@@ -314,7 +329,7 @@ function updateUnlockState() {
                 estimatedLength = Math.sqrt(dx * dx + dy * dy);
             }
             
-            // getTotalLength が未表示や 0 を返すバグへ確実に対処
+            // getTotalLength が未表示、または初期化未完了で 0 / 例外を返す場合のバグを完全に予防
             let length = estimatedLength;
             try {
                 if (line.getTotalLength && line.getTotalLength() > 0) {
@@ -324,15 +339,27 @@ function updateUnlockState() {
                 length = estimatedLength;
             }
 
-            if (!line.style.strokeDasharray || line.style.strokeDasharray === 'none' || parseFloat(line.style.strokeDasharray) === 0) {
-                line.style.strokeDasharray = `${length}`;
-                line.style.strokeDashoffset = `${length}`;
+            // 計算結果が異常な場合は安全なデフォルト値へ引き戻す
+            if (isNaN(length) || length <= 0) {
+                length = estimatedLength;
             }
 
+            // 始点ノードが解放・到達できているかの判定
+            const isSourceUnlocked = (idx === 0) || clearedIndices.includes(idx - 1);
+
             if (isCleared) {
-                line.style.opacity = '0.96';
+                // 1. 完全開通済みのルート（実線・辰砂朱色）
+                line.style.strokeDasharray = 'none';
                 line.style.strokeDashoffset = '0';
+                line.style.opacity = '0.96';
+            } else if (isSourceUnlocked) {
+                // 2. 開放済み・次に挑戦可能なルート（緩慢な誘導を促す情緒的な点線で表示）
+                line.style.strokeDasharray = '8, 8';
+                line.style.strokeDashoffset = '0';
+                line.style.opacity = '0.6';
             } else {
+                // 3. 未解放領域（非表示）
+                line.style.strokeDasharray = `${length}`;
                 line.style.strokeDashoffset = `${length}`;
                 line.style.opacity = '0';
             }
@@ -425,7 +452,7 @@ export const MapSystem = {
             }
         }
 
-        // 3. 各ステージマスの動的生成（一文字アイコンを廃止し、ステージ番号を表示）
+        // 3. 各ステージマスの動的生成（敵の一文字アイコンを廃止し、クリア目標局数を直接表示）
         if (nodesContainer && template) {
             stages.forEach((stage, index) => {
                 const coords = nodeCoords[index];
@@ -440,7 +467,7 @@ export const MapSystem = {
 
                 const icon = node.querySelector('.node-icon');
                 if (icon) {
-                    icon.innerText = stage.stage; // 敵の一文字を廃止し、ステージ番号を表示
+                    icon.innerText = stage.stage;
                 }
 
                 node.addEventListener('click', () => {
