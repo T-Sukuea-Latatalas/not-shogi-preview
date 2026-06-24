@@ -791,7 +791,7 @@ canvas {
     width: 100vw;
     height: 100vh;
     /* デフォルト（デスクトップ・横画面）の和風古地図背景 */
-    background-image: url('横画面背景.png');
+    background-image: url('landscape-bg.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -809,7 +809,7 @@ canvas {
 /* 端末の向きが縦（ポートレート）の場合の背景画像切り替え設定 */
 @media (orientation: portrait) {
     #stage-select-menu {
-        background-image: url('縦画面背景.png') !important;
+        background-image: url('portrait-bg.png') !important;
     }
 }
 
@@ -1427,16 +1427,17 @@ canvas {
        要件4: 吹き出し型情報パネルをモバイル縦画面時に下部ドッキングへ切り替え
        モバイルの小さな画面で吹き出し表示にするとアバターやルート接続線が見えなくなるため、
        メディアクエリ内では絶対吹き出し表示を上書きし、底面に固定ドッキング表示へ切り替えます。
+       親要素 #map-container 内のスクロールに影響されず最前面に固定させるため、fixed 配置で制御します。
        吹き出しの三角形疑似要素は不要になるため display: none で非表示にします。
     */
     #stage-info-panel {
-        position: relative !important;
+        position: fixed !important; /* スクロールコンテナに追従せず画面最下部に固定 */
+        bottom: 0 !important;
+        left: 0 !important;
         right: auto !important;
-        bottom: auto !important;
         top: auto !important;
-        left: auto !important;
         transform: none !important;
-        width: 100% !important;
+        width: 100vw !important;
         height: 40vh !important; 
         max-height: 40vh !important;
         margin: 0 !important;
@@ -1451,6 +1452,7 @@ canvas {
         flex-direction: column !important;
         pointer-events: auto !important;
         animation: none !important; /* 吹き出し用のポップアップアニメーションを無効化 */
+        z-index: 2100 !important; /* タッチコントロール等の前面にドッキング */
     }
 
     /* 下部の三角形矢印をモバイルドッキング時に完全に非表示 */
