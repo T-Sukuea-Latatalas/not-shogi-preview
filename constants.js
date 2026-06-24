@@ -37,7 +37,9 @@ export const STATE = {
     takeDamage: null,
     // デバッグ・ゴッドモード関連
     isDebugMode: false,
-    isGodMode: false
+    isGodMode: false,
+    lastRegenTime: 0,
+    debugMenuOpen: false
 };
 
 // チェスの駒とヨット（Yacht）の定義を追加
@@ -60,11 +62,12 @@ export const PLAYER = {
     speed: 0.5, power: 1, 
     fireRate: 300, lastShot: 0, 
     radius: 1.5,
-    vy: 0, isGrounded: true, isShooting: false 
+    vy: 0, isGrounded: true, isShooting: false,
+    regen: 0
 };
 
-export const UPGRADE_COSTS = { power: 500, rate: 800, speed: 400, hp: 600 };
-export const upgradeKeys = ['power', 'rate', 'speed', 'hp'];
+export const UPGRADE_COSTS = { power: 500, rate: 800, speed: 400, hp: 600, regen: 700 };
+export const upgradeKeys = ['power', 'rate', 'speed', 'hp', 'regen'];
 export const joystickVector = { x: 0, y: 0 };
 
 export const SPREADSHEET_ID = 'https://docs.google.com/spreadsheets/d/1n4711vrRLoDwGGBPO81u28C2fK2PvRZUY91MIbP05As/edit?usp=sharing'; 
