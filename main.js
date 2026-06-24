@@ -43,13 +43,13 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
  * 各種マネージャーと連携させます。
  */
 function initGame() {
-    // 幽玄で情緒ある和の宵闇「一刻（マジックアワー）」を再現する色彩設計
-    const skyColor = 0x0f0817;         // 深遠な宵闇（濃紺紫）
-    const fogColor = 0x0f0817;         // 宵闇に融ける霞フォグ
-    const sunColor = 0xfc4118;         // 落ちゆく太陽 of 劇的な茜朱
-    const sunIntensity = 2.2;          // 鮮烈な陰影をつくる強めの光
-    const ambientColor = 0x1d132b;     // 夜が支配する静まり返った藤影
-    const ambientIntensity = 0.4;      // ほのかな陰影を醸す環境光
+    // 幽玄で情緒ある和の宵闇（薄明かりの藍色空）を再現する色彩設計
+    const skyColor = 0x112233;         // 情緒ある深い瑠璃色・藍鉄の空
+    const fogColor = 0x112233;         // 瑠璃紺に融ける霞フォグ
+    const sunColor = 0xfff3da;         // 柔らかな月明かり・灯火調の温かい白金
+    const sunIntensity = 1.2;          // 自然な陰影を落とす上品な光
+    const ambientColor = 0x1e354a;     // 瑠璃の夜空と調和する穏やかな環境光
+    const ambientIntensity = 0.65;     // 木目や白砂が美しく引き立つ明るさ
     const celestialColor = 0xd4af37;   // 宵闇に浮かぶ金色の月
     const celestialPos = new THREE.Vector3(40, 150, -120);
     const celestialRadius = 12;
@@ -90,7 +90,7 @@ function initGame() {
     const hemisphere = new THREE.HemisphereLight(0x351d4a, 0x0f0817, 0.6);
     STATE.scene.add(hemisphere);
 
-    // ソフトシャドウ投影対応ディレクショナル光源（茜さす陽光）
+    // ソフトシャドウ投影対応ディレクショナル光源
     STATE.sun = new THREE.DirectionalLight(sunColor, sunIntensity); 
     STATE.sun.position.set(60, 80, 40); 
     STATE.sun.castShadow = true; 
@@ -164,7 +164,7 @@ function initGame() {
     // 駒および木目の事前準備
     AssetFactory.init();
 
-    // 苔庭の3Dベース地盤
+    // 苔庭 of 3Dベース地盤
     const mossTex = AssetFactory.createMossTexture();
     mossTex.wrapS = THREE.RepeatWrapping;
     mossTex.wrapT = THREE.RepeatWrapping;
@@ -946,7 +946,7 @@ function quitStageToSelect() {
 }
 
 /**
- * プレイヤーのカメラ視線に向けて上品な朱色（和テイスト）の光弾を放ちます。
+ * プレイヤーのカメラ視線に向けて上品な朱色の光弾を放ちます。
  */
 function shoot() {
     if (!STATE.camera) return;
@@ -1035,8 +1035,6 @@ function animate() {
     moveDir.normalize();
 
     // タッチデバイス仮想パッド補正
-    // joystickVector.y がマイナス（前に倒した）の時に Z 方向がマイナス（前方向）に進むよう、
-    // moveDir.z への代入時に付与されていた不要なマイナス符号（-joystickVector.y）を修正しました。
     if (joystickVector && (joystickVector.x !== 0 || joystickVector.y !== 0)) {
         moveDir.set(joystickVector.x, 0, joystickVector.y);
     }
