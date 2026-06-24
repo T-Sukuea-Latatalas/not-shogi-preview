@@ -4,81 +4,66 @@ const nodeCoords = [];
 let isEventsBound = false;
 let scrollAnimationId = null; // スムーズな絵巻物風スクロールを制御するアニメーションID
 
-// 蛇行してグリッド状にノードを配置するための定数
-const COLS = 5;
-const SPACING_X = 400;
-const SPACING_Y = 320;
-const OFFSET_X = 300;
-const OFFSET_Y = 350;
+// 横一直線配置のための定数
+const SPACING_X = 350;     // ノード間の距離
+const OFFSET_X = 250;      // 最初のノードのX開始位置
+const CONSTANT_Y = 1250;   // マップの高さ2500pxの中央付近に固定
 
 /**
- * 駒の重要度（格）を判別し、和のデザイン表現に同期するための分類を返します。
- * 絵巻物の風格に合わせ、最高格（royal）、強駒（major）、歩卒（minor）に分類します。
+ * ステージデータから敵の構成を解析して難易度スコアを計算します。
+ * @param {Object} stageData ステージ情報
+ * @returns {number} 難易度スコアの合計値
  */
-function getPieceRankClass(stageData) {
-    const priority = [
-        'ヨット', 'Yacht', 'キング', 'K', '王', 'クイーン', 'Q', '飛', '角', 
-        'ルーク', 'R', 'ビショップ', 'B', '金', '銀', '桂', 'N', 'ナイト', '香', 'ポーン', 'P', '歩'
-    ];
-    let matchedKey = '歩';
-    for (const key of priority) {
-        if (stageData[key] && stageData[key] > 0) {
-            matchedKey = key;
-            break;
+function calculateDifficultyScore(stageData) {
+    const weights = {
+        '歩': 1, 'ポーン': 1, 'P': 1,
+        '香': 2, 'ナイト': 2, 'N': 2,
+        '桂': 3, 'ビショップ': 3, 'B': 3,
+        '銀': 4,
+        '金': 5,
+        '角': 6,
+        '飛': 7, 'ルーク': 7, 'R': 7,
+        'クイーン': 15, 'Q': 15,
+        '王': 15, 'キング': 15, 'K': 15,
+        'ヨット': 30, 'Yacht': 30
+    };
+    let score = 0;
+    for (const key in weights) {
+        if (stageData[key]) {
+            score += stageData[key] * weights[key];
         }
     }
-
-    const royal = ['王', 'キング', 'K', 'ヨット', 'Yacht', 'クイーン', 'Q'];
-    const major = ['飛', '角', 'ルーク', 'R', 'ビショップ', 'B', '金', '銀', '桂', 'N', 'ナイト'];
-    
-    if (royal.includes(matchedKey)) {
-        return 'piece-royal'; // 金泥・漆黒（最高格の威厳）
-    } else if (major.includes(matchedKey)) {
-        return 'piece-major'; // 朱砂・深紺（戦局を左右する強駒）
-    } else {
-        return 'piece-minor'; // 薄墨・木肌（盤面を支える歩卒）
-    }
+    return score;
 }
 
 /**
- * 代表的な駒の一文字アイコンを判別して取得します。
+ * 計算された難易度スコアから、3段階の難易度クラスを判定します。
+ * @param {number} score 難易度スコア
+ * @returns {string} 難易度クラス名 (node-easy / node-medium / node-hard)
  */
-function getPieceIcon(stageData) {
-    const priority = [
-        'ヨット', 'Yacht', 'キング', 'K', '王', 'クイーン', 'Q', '飛', '角', 
-        'ルーク', 'R', 'ビショップ', 'B', '金', '銀', '桂', 'N', 'ナイト', '香', 'ポーン', 'P', '歩'
-    ];
-    for (const key of priority) {
-        if (stageData[key] && stageData[key] > 0) {
-            if (key === 'ヨット' || key === 'Yacht') return 'ヨ';
-            if (key === 'キング' || key === 'K') return 'キ';
-            if (key === 'クイーン' || key === 'Q') return 'ク';
-            if (key === 'ルーク' || key === 'R') return 'ル';
-            if (key === 'ビショップ' || key === 'B') return 'ビ';
-            if (key === 'ナイト' || key === 'N') return 'ナ';
-            if (key === 'ポーン' || key === 'P') return 'ポ';
-            return key[0];
-        }
-    }
-    return '歩';
+function getDifficultyClass(score) {
+    if (score <= 5) return 'node-easy';
+    if (score <= 15) return 'node-medium';
+    return 'node-hard';
 }
 
 /**
  * カスタムのイージング関数を用いて、ビューポートを滑らかにスクロールさせます。
  * 古い絵巻物をそっと紐解くような、優美で高級感のある追従動作を実現します。
+ * @param {HTMLElement} viewport 対象となるスクロールコンテナ
+ * @param {number} targetLeft 目標とするスクロール位置X
+ * @param {number} targetTop 目標とするスクロール位置Y
  */
 function smoothScrollTo(viewport, targetLeft, targetTop) {
     if (scrollAnimationId) {
         cancelAnimationFrame(scrollAnimationId);
     }
 
-    // ビューポートの限界スクロール値を考慮
     const maxScrollLeft = viewport.scrollWidth - viewport.clientWidth;
     const maxScrollTop = viewport.scrollHeight - viewport.clientHeight;
     const clampedTargetLeft = Math.max(0, Math.min(targetLeft, maxScrollLeft));
     const clampedTargetTop = Math.max(0, Math.min(targetTop, maxScrollTop));
 
-    // イージング係数（小さいほど滑らかかつ上品に減速します）
     const easeFactor = 0.07;
 
     function step() {
@@ -88,7 +73,6 @@ function smoothScrollTo(viewport, targetLeft, targetTop) {
         const diffLeft = clampedTargetLeft - currentLeft;
         const diffTop = clampedTargetTop - currentTop;
 
-        // 十分に目標値へ近づいた場合はアニメーションを終了してピクセルを合わせる
         if (Math.abs(diffLeft) < 0.5 && Math.abs(diffTop) < 0.5) {
             viewport.scrollLeft = clampedTargetLeft;
             viewport.scrollTop = clampedTargetTop;
@@ -105,9 +89,11 @@ function smoothScrollTo(viewport, targetLeft, targetTop) {
 }
 
 /**
- * アクティブなステージにアバターの位置を合わせ、ビューポートの中央にスクロール追従させます。
+ * アクティブなステージにアバターの位置を合わせ、
+ * forceScroll が有効な場合のみビューポートの中央にスクロール追従させます。
+ * @param {boolean} forceScroll 強制的に自動スクロール追従を行うか否か
  */
-function updateAvatarAndScroll() {
+function updateAvatarAndScroll(forceScroll = false) {
     const currentIndex = STATE.currentStageIndex;
     const coords = nodeCoords[currentIndex];
     const avatar = document.getElementById('player-avatar');
@@ -117,78 +103,104 @@ function updateAvatarAndScroll() {
     }
 
     const viewport = document.querySelector('.map-viewport');
-    if (viewport && coords) {
+    if (forceScroll && viewport && coords) {
         const viewportWidth = viewport.clientWidth;
         const viewportHeight = viewport.clientHeight;
         
         const targetLeft = coords.x - viewportWidth / 2;
         const targetTop = coords.y - viewportHeight / 2;
 
-        // 滑らかなスクロールイージングを実行
         smoothScrollTo(viewport, targetLeft, targetTop);
     }
 }
 
 /**
- * 選択中ステージの情報パネルの描画内容を更新します。
+ * 現在選択されているアクティブなステージアイコンの真上に直接吹き出すポップアップ形式で
+ * ステージ情報パネルを配置・表示します。
  */
 function updateStageInfoPanel() {
     const currentIndex = STATE.currentStageIndex;
     const stage = MapSystem.stagesData[currentIndex];
-    if (!stage) return;
-
-    const infoStageName = document.getElementById('info-stage-name');
-    if (infoStageName) {
-        const kanjis = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十"];
-        const prefix = stage.stage === 0 ? "修練" : `第${kanjis[stage.stage] || stage.stage}局`;
-        infoStageName.innerText = `${prefix}: ${stage.name}`;
+    const panel = document.getElementById('stage-info-panel');
+    
+    if (!stage) {
+        if (panel) panel.style.display = 'none';
+        return;
     }
 
-    const infoEnemyList = document.getElementById('info-enemy-list');
-    if (infoEnemyList) {
-        infoEnemyList.innerHTML = '';
-        const enemyTypes = ['歩', '香', '桂', '銀', '金', '角', '飛', '王', 'ポーン', 'ナイト', 'ビショップ', 'ルーク', 'クイーン', 'キング', 'ヨット'];
-        
-        enemyTypes.forEach(type => {
-            const count = stage[type] || 0;
-            if (count > 0) {
-                const li = document.createElement('li');
-                
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'enemy-name';
-                nameSpan.innerText = PIECE_NAMES[type] || type;
+    if (panel) {
+        panel.style.display = 'flex';
+        const coords = nodeCoords[currentIndex];
+        if (coords) {
+            // パネルの位置をアクティブなアイコンの直上に配置（吹き出しポップアップ化）
+            panel.style.position = 'absolute';
+            panel.style.right = 'auto';
+            panel.style.top = 'auto';
+            panel.style.bottom = 'auto';
+            panel.style.left = `${coords.x}px`;
+            panel.style.top = `${coords.y - 45}px`; // アイコンの少し上に配置
+            panel.style.transform = 'translate(-50%, -100%)'; // 完全に中央揃えで真上に吹き出し
+            panel.style.zIndex = '1000';
+            panel.style.pointerEvents = 'auto';
+            
+            // 吹き出しとしての視覚補正
+            panel.style.borderRadius = '4px';
+            panel.style.boxShadow = '0 -8px 24px rgba(0,0,0,0.65)';
+        }
 
-                const countSpan = document.createElement('span');
-                countSpan.className = 'enemy-count';
-                countSpan.innerText = `× ${count}`;
+        const infoStageName = document.getElementById('info-stage-name');
+        if (infoStageName) {
+            const kanjis = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十"];
+            const prefix = stage.stage === 0 ? "修練" : `第${kanjis[stage.stage] || stage.stage}局`;
+            infoStageName.innerText = `${prefix}: ${stage.name}`;
+        }
 
-                li.appendChild(nameSpan);
-                li.appendChild(countSpan);
-                infoEnemyList.appendChild(li);
-            }
-        });
-    }
+        const infoEnemyList = document.getElementById('info-enemy-list');
+        if (infoEnemyList) {
+            infoEnemyList.innerHTML = '';
+            const enemyTypes = ['歩', '香', '桂', '銀', '金', '角', '飛', '王', 'ポーン', 'ナイト', 'ビショップ', 'ルーク', 'クイーン', 'キング', 'ヨット'];
+            
+            enemyTypes.forEach(type => {
+                const count = stage[type] || 0;
+                if (count > 0) {
+                    const li = document.createElement('li');
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'enemy-name';
+                    nameSpan.innerText = PIECE_NAMES[type] || type;
 
-    // 進捗（アンロック状態）に応じた開始ボタンの有効化制御
-    const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
-    const isUnlocked = (currentIndex === 0) || clearedIndices.includes(currentIndex - 1);
-    const startBtn = document.getElementById('stage-start-btn');
-    if (startBtn) {
-        startBtn.disabled = !isUnlocked;
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'enemy-count';
+                    countSpan.innerText = `× ${count}`;
+
+                    li.appendChild(nameSpan);
+                    li.appendChild(countSpan);
+                    infoEnemyList.appendChild(li);
+                }
+            });
+        }
+
+        const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+        const isUnlocked = (currentIndex === 0) || clearedIndices.includes(currentIndex - 1);
+        const startBtn = document.getElementById('stage-start-btn');
+        if (startBtn) {
+            startBtn.disabled = !isUnlocked;
+        }
     }
 }
 
 /**
- * 各種UIの状態を一括して最新に更新します。
+ * 各種UIの状態を最新に更新します。
+ * @param {boolean} forceScroll 自動スクロール追従を強制するか否か
  */
-function updateActiveStageUI() {
+function updateActiveStageUI(forceScroll = false) {
     updateUnlockState();
-    updateAvatarAndScroll();
+    updateAvatarAndScroll(forceScroll);
     updateStageInfoPanel();
 }
 
 /**
- * ステージ選択画面の各種ボタンへのイベントバインドを行います。
+ * ステージ選択画面の各種パネルボタンへのイベントバインドを行います。
  */
 function bindPanelEvents() {
     if (isEventsBound) return;
@@ -213,8 +225,7 @@ function bindPanelEvents() {
 }
 
 /**
- * 進捗状況に合わせて各マスのアンロッククラスおよびSVGラインを更新します。
- * 駒の風格を活かした色相・明度のコントラスト制御もここで行います。
+ * 進捗状況に合わせて各マスのアンロッククラス、難易度3段階自動着色、およびSVGラインを更新します。
  */
 function updateUnlockState() {
     const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
@@ -222,17 +233,20 @@ function updateUnlockState() {
 
     const nodes = document.querySelectorAll('.stage-node');
     nodes.forEach((node, idx) => {
+        const stage = MapSystem.stagesData[idx];
+        if (!stage) return;
+
         const isCleared = clearedIndices.includes(idx);
         const isUnlocked = (idx === 0) || clearedIndices.includes(idx - 1);
         const isActive = (idx === currentIndex);
 
         node.classList.remove('locked', 'unlocked', 'cleared', 'active');
+        node.classList.remove('node-easy', 'node-medium', 'node-hard');
 
-        // 駒の重要度に応じたクラスの付与と、和風デザインの同期
-        const stage = MapSystem.stagesData[idx];
-        const rankClass = stage ? getPieceRankClass(stage) : 'piece-minor';
-        node.classList.remove('piece-royal', 'piece-major', 'piece-minor');
-        node.classList.add(rankClass);
+        // 難易度を自動解析して3段階のクラスを付与
+        const difficultyScore = calculateDifficultyScore(stage);
+        const diffClass = getDifficultyClass(difficultyScore);
+        node.classList.add(diffClass);
 
         if (isActive) {
             node.classList.add('active');
@@ -244,7 +258,14 @@ function updateUnlockState() {
             node.classList.add('locked');
         }
 
-        // コントラストと風格を活かした、動的な和紙・金泥・朱砂・薄墨の色彩制御
+        // 難易度に応じた基本パレット色の設定
+        let difficultyColor = '#2ecc71'; // Easy: 青緑・若葉
+        if (diffClass === 'node-medium') {
+            difficultyColor = '#f39c12'; // Medium: 黄金・山吹
+        } else if (diffClass === 'node-hard') {
+            difficultyColor = '#e74c3c'; // Hard: 朱赤・辰砂
+        }
+
         const icon = node.querySelector('.node-icon');
         if (icon) {
             icon.style.color = '';
@@ -253,75 +274,65 @@ function updateUnlockState() {
             icon.style.boxShadow = '';
 
             if (isActive) {
-                // 現在選択中：絵巻物の中で最も際立つ「黄金の光彩」と重厚な縁取り
-                icon.style.border = '2.5px solid #d4af37';
-                icon.style.boxShadow = '0 0 16px rgba(212, 175, 55, 0.9)';
-                if (rankClass === 'piece-royal') {
-                    icon.style.color = '#d4af37'; // 燦然と輝く金泥
-                    icon.style.background = '#1a1a1a'; // 漆黒の台座
-                } else if (rankClass === 'piece-major') {
-                    icon.style.color = '#c93a20'; // 鮮烈な朱砂
-                    icon.style.background = '#fcfaf2'; // 生成り色の和紙
-                } else {
-                    icon.style.color = '#2c3e50'; // 深い藍
-                    icon.style.background = '#fcfaf2';
-                }
+                // 選択中：現在アクティブであることをアピールする強力な難易度カラー発光
+                icon.style.border = `2.5px solid ${difficultyColor}`;
+                icon.style.boxShadow = `0 0 16px ${difficultyColor}`;
+                icon.style.color = difficultyColor;
+                icon.style.background = '#1a1a1a'; // 漆黒の台座
             } else if (isCleared) {
-                // 攻略済み：古びた風格を漂わせる落ち着いた和の色相
-                icon.style.border = '1.5px solid #8b7a66';
-                if (rankClass === 'piece-royal') {
-                    icon.style.color = '#b08d32'; // 燻んだ金箔色
-                    icon.style.background = '#2c2a29'; // 煤黒
-                } else if (rankClass === 'piece-major') {
-                    icon.style.color = '#9e2a16'; // 渋みのある辰砂（しんしゃ）
-                    icon.style.background = '#eadaaf'; // 経年変化した古紙
-                } else {
-                    icon.style.color = '#555555'; // 炭色
-                    icon.style.background = '#eadaaf';
-                }
+                // クリア：渋みを持たせた落ち着いたトーンの難易度カラー
+                icon.style.border = `1.5px solid ${difficultyColor}aa`;
+                icon.style.color = difficultyColor;
+                icon.style.background = '#2c2a29'; // 煤黒
+                icon.style.opacity = '0.95';
             } else if (isUnlocked) {
-                // 未挑戦（解放済み）：これからの行軍を示す淡いインク調
-                icon.style.border = '1.5px dashed #a89984';
-                icon.style.color = '#7c6f64'; // 渋紙色
-                icon.style.background = '#eedcb3'; // 絹本調の背景
+                // 解放済み：挑戦可能をほのめかす点線の細枠
+                icon.style.border = `1.5px dashed ${difficultyColor}99`;
+                icon.style.color = `${difficultyColor}dd`;
+                icon.style.background = '#eedcb3'; // 経年和紙調
             } else {
-                // 未解放（ロック）：絵地図の霧に隠されたような極めて低いコントラスト
+                // 未解放：濃霧に隠されたような極めて低いコントラスト
                 icon.style.border = '1.2px solid rgba(139, 122, 102, 0.15)';
-                icon.style.color = 'rgba(139, 122, 102, 0.25)'; // 地色に溶け込む薄墨
-                icon.style.background = 'rgba(139, 122, 102, 0.06)';
+                icon.style.color = 'rgba(139, 122, 102, 0.22)';
+                icon.style.background = 'rgba(139, 122, 102, 0.05)';
             }
         }
     });
 
-    // SVG接続ルート線の更新（朱の墨汁がじわじわと道を伝い染み込んでいく演出）
+    // SVG接続ルート線の更新（第一局から第二局、および以降のラインが消える現象を徹底修正）
     MapSystem.stagesData.forEach((stage, idx) => {
         const line = document.getElementById(`route-line-${idx}`);
         if (line) {
             const isCleared = clearedIndices.includes(idx);
             
-            // パスの長さを動的に算出、またはgetTotalLengthから取得
             const current = nodeCoords[idx];
             const next = nodeCoords[idx + 1];
-            let estimatedLength = 500;
+            let estimatedLength = SPACING_X;
             if (current && next) {
                 const dx = next.x - current.x;
                 const dy = next.y - current.y;
-                estimatedLength = Math.sqrt(dx * dx + dy * dy) * 1.15; // うねり補正
+                estimatedLength = Math.sqrt(dx * dx + dy * dy);
             }
-            const length = line.getTotalLength ? (line.getTotalLength() || estimatedLength) : estimatedLength;
+            
+            // getTotalLength が未表示や 0 を返すバグへ確実に対処
+            let length = estimatedLength;
+            try {
+                if (line.getTotalLength && line.getTotalLength() > 0) {
+                    length = line.getTotalLength();
+                }
+            } catch (e) {
+                length = estimatedLength;
+            }
 
-            // 初期化処理
-            if (!line.style.strokeDasharray || line.style.strokeDasharray === 'none') {
+            if (!line.style.strokeDasharray || line.style.strokeDasharray === 'none' || parseFloat(line.style.strokeDasharray) === 0) {
                 line.style.strokeDasharray = `${length}`;
                 line.style.strokeDashoffset = `${length}`;
             }
 
             if (isCleared) {
-                // じわじわと染み込んでいくトランジション演出
                 line.style.opacity = '0.96';
                 line.style.strokeDashoffset = '0';
             } else {
-                // まだ朱が通っていない、あるいはリセット状態
                 line.style.strokeDashoffset = `${length}`;
                 line.style.opacity = '0';
             }
@@ -334,7 +345,7 @@ export const MapSystem = {
     selectStageCallback: null,
 
     /**
-     * ステージデータ配列とコールバック関数を受け取って初期化します。
+     * ステージデータ配列とコールバック関数を受け取って一直線マップを初期化します。
      */
     init(stages, selectStageCallbackFn) {
         this.stagesData = stages;
@@ -348,26 +359,28 @@ export const MapSystem = {
         if (nodesContainer) nodesContainer.innerHTML = '';
         if (svgContainer) svgContainer.innerHTML = '';
 
-        // 1. 各ステージの位置座標（蛇行配置）の算出
+        // 1. 横一直線（等間隔）の座標算出
         stages.forEach((stage, index) => {
-            const row = Math.floor(index / COLS);
-            let col = index % COLS;
-            if (row % 2 === 1) {
-                col = (COLS - 1) - col; // 奇数行は右から左へ蛇行
-            }
-            const x = OFFSET_X + col * SPACING_X;
-            const y = OFFSET_Y + row * SPACING_Y;
+            const x = OFFSET_X + index * SPACING_X;
+            const y = CONSTANT_Y;
             nodeCoords.push({ x, y });
         });
 
-        // 2. SVGによる接続ルート線の構築（古い街道や水脈のような手描き風の揺らぎ演出）
+        // マップスクロール可能領域（幅）をステージ数に合わせて動的に拡張
+        const mapContainer = document.getElementById('map-container');
+        if (mapContainer) {
+            const totalWidth = OFFSET_X * 2 + (stages.length - 1) * SPACING_X;
+            mapContainer.style.width = `${totalWidth}px`;
+            mapContainer.style.height = `2500px`;
+        }
+
+        // 2. SVGによる街道風接続ルート線の構築
         if (svgContainer) {
-            // 手描きかすれ風の微細な揺らぎを与えるSVGフィルターを定義
             const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
             defs.innerHTML = `
                 <filter id="emaki-brush-filter" x="-20%" y="-20%" width="140%" height="140%">
                     <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" result="noise" />
-                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
                 </filter>
             `;
             svgContainer.appendChild(defs);
@@ -376,53 +389,43 @@ export const MapSystem = {
                 const current = nodeCoords[i];
                 const next = nodeCoords[i + 1];
                 if (current && next) {
-                    // 直線ではなく、古地図の「街道」を思わせる有機的なうねり（2次ベジェ曲線）を計算
-                    const dx = next.x - current.x;
-                    const dy = next.y - current.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    const nx = -dy / distance;
-                    const ny = dx / distance;
-                    
-                    // インデックスに応じてうねりの方向や振幅を変化させ、画一的でない豊かな表情を持たせます
-                    const waveAmplitude = Math.sin(i * 1.7) * 40; 
-                    const controlX = (current.x + next.x) / 2 + nx * waveAmplitude;
-                    const controlY = (current.y + next.y) / 2 + ny * waveAmplitude;
+                    // 一直線上に整列させつつ、手描き古地図の「街道」風に緩やかにYをうねらせる（2次ベジェ曲線）
+                    const waveAmplitude = Math.sin(i * 1.5) * 15; 
+                    const controlX = (current.x + next.x) / 2;
+                    const controlY = (current.y + next.y) / 2 + waveAmplitude;
                     
                     const pathD = `M ${current.x} ${current.y} Q ${controlX} ${controlY} ${next.x} ${next.y}`;
 
-                    // 【背景線】古びた薄墨や渋紙色のかすれた街道表現
+                    // 【背景線】かすれ墨街道
                     const bgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     bgPath.setAttribute('d', pathD);
                     bgPath.setAttribute('class', 'map-route-line route-bg');
                     bgPath.setAttribute('filter', 'url(#emaki-brush-filter)');
                     bgPath.style.fill = 'none';
-                    bgPath.style.stroke = '#8b7a66'; // 古色を帯びた墨
+                    bgPath.style.stroke = '#8b7a66';
                     bgPath.style.strokeWidth = '3.5px';
-                    bgPath.style.strokeDasharray = '7 4 2 4'; // 手書きならではの不規則なかすれ表現
-                    bgPath.style.opacity = '0.45';
+                    bgPath.style.strokeDasharray = '7 4 2 4';
+                    bgPath.style.opacity = '0.4';
                     svgContainer.appendChild(bgPath);
 
-                    // 【進行線】アンロック時に朱の墨汁が静かに伝って染み込んでいくアクティブ表現
+                    // 【進行線】アンロックに同期して満ちる辰砂朱
                     const activePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     activePath.setAttribute('d', pathD);
                     activePath.setAttribute('class', 'map-route-line route-active');
                     activePath.setAttribute('id', `route-line-${i}`);
                     activePath.setAttribute('filter', 'url(#emaki-brush-filter)');
                     activePath.style.fill = 'none';
-                    activePath.style.stroke = '#c93a20'; // 深みのある辰砂（しんしゃ）の朱
+                    activePath.style.stroke = '#c93a20'; // 辰砂朱
                     activePath.style.strokeWidth = '4.5px';
                     activePath.style.strokeLinecap = 'round';
                     activePath.style.opacity = '0';
-                    
-                    // 朱がじわじわと満ちていく様を、2.5秒かけて優雅に描画トランジションさせます
-                    activePath.style.transition = 'stroke-dashoffset 2.5s cubic-bezier(0.42, 0, 0.58, 1), opacity 0.8s ease';
+                    activePath.style.transition = 'stroke-dashoffset 2.2s cubic-bezier(0.42, 0, 0.58, 1), opacity 0.6s ease';
                     svgContainer.appendChild(activePath);
                 }
             }
         }
 
-        // 3. 各ステージマスの動的生成
+        // 3. 各ステージマスの動的生成（一文字アイコンを廃止し、ステージ番号を表示）
         if (nodesContainer && template) {
             stages.forEach((stage, index) => {
                 const coords = nodeCoords[index];
@@ -437,16 +440,15 @@ export const MapSystem = {
 
                 const icon = node.querySelector('.node-icon');
                 if (icon) {
-                    icon.innerText = getPieceIcon(stage);
+                    icon.innerText = stage.stage; // 敵の一文字を廃止し、ステージ番号を表示
                 }
 
-                // マスクリックでの選択処理
                 node.addEventListener('click', () => {
                     const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
                     const isUnlocked = (index === 0) || clearedIndices.includes(index - 1);
                     if (isUnlocked) {
                         STATE.currentStageIndex = index;
-                        updateActiveStageUI();
+                        updateActiveStageUI(true); // クリック時（ステージ変更時）のみ強制追従スクロール
                     }
                 });
 
@@ -454,7 +456,7 @@ export const MapSystem = {
             });
         }
 
-        // アバターの安全な初期位置同期
+        // 初期アバターの強制位置・スクロール同期
         const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
         let defaultIndex = 0;
         if (clearedIndices.length > 0) {
@@ -472,18 +474,18 @@ export const MapSystem = {
         }
 
         bindPanelEvents();
-        updateActiveStageUI();
+        updateActiveStageUI(true); // 初期ロード時は中央に強制追従
     },
 
     /**
-     * マップ画面を表示し、スクロール位置をアバターに追従させます。
+     * マップ画面を表示し、スクロールを対象に強制追従させます。
      */
     show() {
         const stageSelectMenu = document.getElementById('stage-select-menu');
         if (stageSelectMenu) {
             stageSelectMenu.style.display = 'flex';
         }
-        updateActiveStageUI();
+        updateActiveStageUI(true); // 画面表示時は強制追従
     },
 
     /**
@@ -500,34 +502,24 @@ export const MapSystem = {
     },
 
     /**
-     * 進行度（クリア済みステージ）の変化を検知してクラス適用状態を更新します。
+     * 進行度の変化を検知してクラス適用状態を更新します（スクロール阻害なし）。
      */
     updateMapState() {
-        updateActiveStageUI();
+        updateActiveStageUI(false); // 内部更新時は自動追従スクロールをかけない
     },
 
     /**
-     * updateMapStateと同様にアンロック表示状態を更新します（下位互換性確保）。
+     * 進行度の変化を検知してクラス適用状態を更新します（下位互換性確保用）。
      */
     updateUnlockState() {
-        updateActiveStageUI();
+        updateActiveStageUI(false); // 内部更新時は自動追従スクロールをかけない
     },
 
     /**
-     * キーボード（矢印キー、WASD、Enter）でのマップ移動および決定入力を処理します。
+     * キーボード（矢印キー、WASD、Enter）での移動および決定入力を処理します。
      */
     handleKeyDown(event) {
         switch (event.code) {
-            case 'ArrowUp':
-            case 'KeyW':
-                event.preventDefault();
-                this.moveAvatar('up');
-                break;
-            case 'ArrowDown':
-            case 'KeyS':
-                event.preventDefault();
-                this.moveAvatar('down');
-                break;
             case 'ArrowLeft':
             case 'KeyA':
                 event.preventDefault();
@@ -547,14 +539,14 @@ export const MapSystem = {
     },
 
     /**
-     * 仮想操作パッドの方向指示に基づき、指定方向にある隣接するアンロック済みノードへ移動します。
+     * 操作方向に基づき、隣接するアンロック済みノードへ移動させます。
+     * @param {string} direction 移動方向 (left / right)
      */
     moveAvatar(direction) {
         const currentIndex = STATE.currentStageIndex;
         const currentCoords = nodeCoords[currentIndex];
         if (!currentCoords) return;
 
-        // 隣接する前後1ステップのみに移動制限をかけ、ワープを防ぎます
         const candidates = [];
         if (currentIndex > 0) candidates.push(currentIndex - 1);
         if (currentIndex < this.stagesData.length - 1) candidates.push(currentIndex + 1);
@@ -572,15 +564,9 @@ export const MapSystem = {
             if (!targetCoords) continue;
 
             const dx = targetCoords.x - currentCoords.x;
-            const dy = targetCoords.y - currentCoords.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distance = Math.abs(dx);
 
-            let nodeDir = '';
-            if (Math.abs(dx) > Math.abs(dy)) {
-                nodeDir = dx > 0 ? 'right' : 'left';
-            } else {
-                nodeDir = dy > 0 ? 'down' : 'up';
-            }
+            let nodeDir = dx > 0 ? 'right' : 'left';
 
             if (nodeDir === direction) {
                 if (distance < minDistance) {
@@ -592,19 +578,19 @@ export const MapSystem = {
 
         if (bestTargetIndex !== -1) {
             STATE.currentStageIndex = bestTargetIndex;
-            updateActiveStageUI();
+            updateActiveStageUI(true); // 手動での方向指示操作による移動は、アバターを見失わないため強制追従
         }
     },
 
     /**
-     * 仮想十字キーの入力ハンドラ（moveAvatarへの委譲による互換処理）。
+     * 仮想操作パッド入力用移動処理（moveAvatarへ委譲）。
      */
     handleMapMovement(direction) {
         this.moveAvatar(direction);
     },
 
     /**
-     * 現在選択しているアンロック済みステージに対し、対局開始（コールバック関数の実行）を指示します。
+     * 現在選択中のステージを開始させます。
      */
     startSelectedStage() {
         const currentIndex = STATE.currentStageIndex;
