@@ -94,7 +94,7 @@ function smoothScrollTo(viewport, targetLeft, targetTop) {
  * @param {boolean} forceScroll 強制的に自動スクロール追従を行うか否か
  */
 function updateAvatarAndScroll(forceScroll = false) {
-    const currentIndex = STATE.currentStageIndex;
+    const currentIndex = Number(STATE.currentStageIndex);
     const coords = nodeCoords[currentIndex];
     const avatar = document.getElementById('player-avatar');
     if (avatar && coords) {
@@ -119,7 +119,7 @@ function updateAvatarAndScroll(forceScroll = false) {
  * ステージ情報パネルを配置・表示します。
  */
 function updateStageInfoPanel() {
-    const currentIndex = STATE.currentStageIndex;
+    const currentIndex = Number(STATE.currentStageIndex);
     const stage = MapSystem.stagesData[currentIndex];
     const panel = document.getElementById('stage-info-panel');
     
@@ -195,7 +195,8 @@ function updateStageInfoPanel() {
             });
         }
 
-        const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndices = clearedIndicesRaw.map(x => Number(x));
         const isUnlocked = (currentIndex === 0) || clearedIndices.includes(currentIndex - 1);
         const startBtn = document.getElementById('stage-start-btn');
         if (startBtn) {
@@ -243,17 +244,19 @@ function bindPanelEvents() {
  * 進捗状況に合わせて各マスのアンロッククラス、難易度3段階自動着色、およびSVGラインを更新します。
  */
 function updateUnlockState() {
-    const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
-    const currentIndex = STATE.currentStageIndex;
+    const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+    const clearedIndices = clearedIndicesRaw.map(x => Number(x));
+    const currentIndex = Number(STATE.currentStageIndex);
 
     const nodes = document.querySelectorAll('.stage-node');
     nodes.forEach((node, idx) => {
-        const stage = MapSystem.stagesData[idx];
+        const currentIdxNum = Number(idx);
+        const stage = MapSystem.stagesData[currentIdxNum];
         if (!stage) return;
 
-        const isCleared = clearedIndices.includes(idx);
-        const isUnlocked = (idx === 0) || clearedIndices.includes(idx - 1);
-        const isActive = (idx === currentIndex);
+        const isCleared = clearedIndices.includes(currentIdxNum);
+        const isUnlocked = (currentIdxNum === 0) || clearedIndices.includes(currentIdxNum - 1);
+        const isActive = (currentIdxNum === currentIndex);
 
         node.classList.remove('locked', 'unlocked', 'cleared', 'active');
         node.classList.remove('node-easy', 'node-medium', 'node-hard');
@@ -316,16 +319,17 @@ function updateUnlockState() {
 
     // SVG接続ルート線の更新（未クリア初期ロード時でも進行ルート線が可視化されるようにロジックを最適化）
     MapSystem.stagesData.forEach((stage, idx) => {
-        const line = document.getElementById(`route-line-${idx}`);
+        const currentIdxNum = Number(idx);
+        const line = document.getElementById(`route-line-${currentIdxNum}`);
         if (line) {
-            const isCleared = clearedIndices.includes(idx);
+            const isCleared = clearedIndices.includes(currentIdxNum);
             
-            const current = nodeCoords[idx];
-            const next = nodeCoords[idx + 1];
+            const current = nodeCoords[currentIdxNum];
+            const next = nodeCoords[currentIdxNum + 1];
             let estimatedLength = SPACING_X;
             if (current && next) {
-                const dx = next.x - current.x;
-                const dy = next.y - current.y;
+                const dx = Number(next.x) - Number(current.x);
+                const dy = Number(next.y) - Number(current.y);
                 estimatedLength = Math.sqrt(dx * dx + dy * dy);
             }
             
@@ -345,11 +349,12 @@ function updateUnlockState() {
             }
 
             // 始点ノードが解放・到達できているかの判定
-            const isSourceUnlocked = (idx === 0) || clearedIndices.includes(idx - 1);
+            const isSourceUnlocked = (currentIdxNum === 0) || clearedIndices.includes(currentIdxNum - 1);
 
             if (isCleared) {
                 // 1. 完全開通済みのルート（実線・辰砂朱色）
-                line.style.strokeDasharray = 'none';
+                // インラインのダッシュ設定を空文字列（''）にすることで、CSS側の点線定義との競合を防ぎ、確実に実線として描画します。
+                line.style.strokeDasharray = '';
                 line.style.strokeDashoffset = '0';
                 line.style.opacity = '0.96';
             } else if (isSourceUnlocked) {
@@ -471,7 +476,8 @@ export const MapSystem = {
                 }
 
                 node.addEventListener('click', () => {
-                    const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+                    const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+                    const clearedIndices = clearedIndicesRaw.map(x => Number(x));
                     const isUnlocked = (index === 0) || clearedIndices.includes(index - 1);
                     if (isUnlocked) {
                         STATE.currentStageIndex = index;
@@ -484,7 +490,8 @@ export const MapSystem = {
         }
 
         // 初期アバターの強制位置・スクロール同期
-        const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndices = clearedIndicesRaw.map(x => Number(x));
         let defaultIndex = 0;
         if (clearedIndices.length > 0) {
             const maxClearedIndex = Math.max(...clearedIndices);
@@ -496,7 +503,7 @@ export const MapSystem = {
         }
         
         const isCurrentUnlocked = (STATE.currentStageIndex === 0) || clearedIndices.includes(STATE.currentStageIndex - 1);
-        if (STATE.currentStageIndex === undefined || STATE.currentStageIndex === null || STATE.currentStageIndex < 0 || STATE.currentStageIndex >= stages.length || !isCurrentUnlocked) {
+        if (STATE.currentStageIndex === undefined || STATE.currentStageIndex === null || Number(STATE.currentStageIndex) < 0 || Number(STATE.currentStageIndex) >= stages.length || !isCurrentUnlocked) {
             STATE.currentStageIndex = defaultIndex;
         }
 
@@ -570,7 +577,7 @@ export const MapSystem = {
      * @param {string} direction 移動方向 (left / right)
      */
     moveAvatar(direction) {
-        const currentIndex = STATE.currentStageIndex;
+        const currentIndex = Number(STATE.currentStageIndex);
         const currentCoords = nodeCoords[currentIndex];
         if (!currentCoords) return;
 
@@ -578,19 +585,22 @@ export const MapSystem = {
         if (currentIndex > 0) candidates.push(currentIndex - 1);
         if (currentIndex < this.stagesData.length - 1) candidates.push(currentIndex + 1);
 
-        const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndices = clearedIndicesRaw.map(x => Number(x));
         const validCandidates = candidates.filter(idx => {
-            return (idx === 0) || clearedIndices.includes(idx - 1);
+            const currentCandidateIdx = Number(idx);
+            return (currentCandidateIdx === 0) || clearedIndices.includes(currentCandidateIdx - 1);
         });
 
         let bestTargetIndex = -1;
         let minDistance = Infinity;
 
         for (const i of validCandidates) {
-            const targetCoords = nodeCoords[i];
+            const currentCandidateIdx = Number(i);
+            const targetCoords = nodeCoords[currentCandidateIdx];
             if (!targetCoords) continue;
 
-            const dx = targetCoords.x - currentCoords.x;
+            const dx = Number(targetCoords.x) - Number(currentCoords.x);
             const distance = Math.abs(dx);
 
             let nodeDir = dx > 0 ? 'right' : 'left';
@@ -598,7 +608,7 @@ export const MapSystem = {
             if (nodeDir === direction) {
                 if (distance < minDistance) {
                     minDistance = distance;
-                    bestTargetIndex = i;
+                    bestTargetIndex = currentCandidateIdx;
                 }
             }
         }
@@ -620,8 +630,9 @@ export const MapSystem = {
      * 現在選択中のステージを開始させます。
      */
     startSelectedStage() {
-        const currentIndex = STATE.currentStageIndex;
-        const clearedIndices = window.getClearedStages ? window.getClearedStages() : [];
+        const currentIndex = Number(STATE.currentStageIndex);
+        const clearedIndicesRaw = window.getClearedStages ? window.getClearedStages() : [];
+        const clearedIndices = clearedIndicesRaw.map(x => Number(x));
         const isUnlocked = (currentIndex === 0) || clearedIndices.includes(currentIndex - 1);
 
         if (isUnlocked && typeof this.selectStageCallback === 'function') {
