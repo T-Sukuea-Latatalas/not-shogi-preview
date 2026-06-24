@@ -1,5 +1,7 @@
 import { STATE, PLAYER, UPGRADE_COSTS } from './constants.js';
 import { Item } from './entities.js'; // 一括撃破時の安全なアイテムドロップ生成用にインポート
+import { resetPlayerStatus, resetGameProgress, savePlayerData } from './save-manager.js';
+import { MapSystem } from './map-system.js';
 
 // キー入力履歴を保持するバッファ（「debug」の検知用）
 const DEBUG_SEQUENCE = 'debug';
@@ -34,7 +36,6 @@ function safeShowMsg(msg) {
             console.error('[Debug] window.showMsg の実行中にエラーが発生しました:', err);
         }
     } else {
-        // UI側の通知機能が準備できていない場合の代替ログ出力
         console.log(`%c[Debug Alert]: ${msg}`, 'color: #00ffff; font-weight: bold;');
     }
 }
@@ -44,7 +45,200 @@ function safeShowMsg(msg) {
  */
 function safeUpdateAndSave() {
     safeCall('updateUI');
-    safeCall('savePlayerData');
+    savePlayerData();
+}
+
+/**
+ * ゲーム内の最新データ（STATE, PLAYER）からデバッグ画面UIの状態を同期します
+ */
+function syncDebugPanelFromData() {
+    const godMode = document.getElementById('debug-god-mode');
+    if (godMode) godMode.checked = !!STATE.isGodMode;
+
+    const freezeEnemies = document.getElementById('debug-freeze-enemies');
+    if (freezeEnemies) freezeEnemies.checked = !!STATE.isEnemiesFrozen;
+
+    const creativeMode = document.getElementById('debug-creative-mode');
+    if (creativeMode) creativeMode.checked = !!STATE.isCreativeMode;
+
+    const hpRange = document.getElementById('range-debug-hp');
+    const hpVal = document.getElementById('val-debug-hp');
+    if (hpRange) {
+        hpRange.value = PLAYER.hp;
+        if (hpVal) hpVal.innerText = Math.round(PLAYER.hp);
+    }
+
+    const powerRange = document.getElementById('range-debug-power');
+    const powerVal = document.getElementById('val-debug-power');
+    if (powerRange) {
+        powerRange.value = PLAYER.power;
+        if (powerVal) powerVal.innerText = PLAYER.power;
+    }
+
+    const rateRange = document.getElementById('range-debug-rate');
+    const rateVal = document.getElementById('val-debug-rate');
+    if (rateRange) {
+        rateRange.value = PLAYER.fireRate;
+        if (rateVal) rateVal.innerText = PLAYER.fireRate;
+    }
+
+    const speedRange = document.getElementById('range-debug-speed');
+    const speedVal = document.getElementById('val-debug-speed');
+    if (speedRange) {
+        speedRange.value = PLAYER.speed;
+        if (speedVal) speedVal.innerText = PLAYER.speed.toFixed(2);
+    }
+
+    const scoreRange = document.getElementById('range-debug-score');
+    const scoreVal = document.getElementById('val-debug-score');
+    if (scoreRange) {
+        scoreRange.value = STATE.score;
+        if (scoreVal) scoreVal.innerText = STATE.score;
+    }
+}
+
+/**
+ * トグルスイッチ（無敵、一時停止、浮遊）の入力イベントを設定
+ */
+function setupSwitches() {
+    const godMode = document.getElementById('debug-god-mode');
+    if (godMode) {
+        godMode.addEventListener('change', (e) => {
+            STATE.isGodMode = e.target.checked;
+            safeShowMsg(STATE.isGodMode ? '金剛不壊 (無敵)：有効' : '金剛不壊 (無敵)：無効');
+            safeUpdateAndSave();
+        });
+    }
+
+    const freezeEnemies = document.getElementById('debug-freeze-enemies');
+    if (freezeEnemies) {
+        freezeEnemies.addEventListener('change', (e) => {
+            STATE.isEnemiesFrozen = e.target.checked;
+            safeShowMsg(STATE.isEnemiesFrozen ? '刻の静止 (敵一時停止)：有効' : '刻の静止 (敵一時停止)：無効');
+            safeUpdateAndSave();
+        });
+    }
+
+    const creativeMode = document.getElementById('debug-creative-mode');
+    if (creativeMode) {
+        creativeMode.addEventListener('change', (e) => {
+            STATE.isCreativeMode = e.target.checked;
+            safeShowMsg(STATE.isCreativeMode ? '万物浮揚 (空中移動)：有効' : '万物浮揚 (空中移動)：無効');
+            safeUpdateAndSave();
+        });
+    }
+}
+
+/**
+ * スライドバー（生命、腕力、連射速度、瞬身、所持銭）のリアルタイム更新イベントを設定
+ */
+function setupSliders() {
+    const hpRange = document.getElementById('range-debug-hp');
+    const hpVal = document.getElementById('val-debug-hp');
+    if (hpRange) {
+        hpRange.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            PLAYER.hp = val;
+            PLAYER.maxHp = Math.max(PLAYER.maxHp, val); // ゲージ比率の崩れ防止のために最大生命も連動
+            if (hpVal) hpVal.innerText = Math.round(val);
+            safeUpdateAndSave();
+        });
+    }
+
+    const powerRange = document.getElementById('range-debug-power');
+    const powerVal = document.getElementById('val-debug-power');
+    if (powerRange) {
+        powerRange.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            PLAYER.power = val;
+            if (powerVal) powerVal.innerText = val;
+            safeUpdateAndSave();
+        });
+    }
+
+    const rateRange = document.getElementById('range-debug-rate');
+    const rateVal = document.getElementById('val-debug-rate');
+    if (rateRange) {
+        rateRange.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            PLAYER.fireRate = val;
+            if (rateVal) rateVal.innerText = val;
+            safeUpdateAndSave();
+        });
+    }
+
+    const speedRange = document.getElementById('range-debug-speed');
+    const speedVal = document.getElementById('val-debug-speed');
+    if (speedRange) {
+        speedRange.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            PLAYER.speed = val;
+            if (speedVal) speedVal.innerText = val.toFixed(2);
+            safeUpdateAndSave();
+        });
+    }
+
+    const scoreRange = document.getElementById('range-debug-score');
+    const scoreVal = document.getElementById('val-debug-score');
+    if (scoreRange) {
+        scoreRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            STATE.score = val;
+            if (scoreVal) scoreVal.innerText = val;
+            safeUpdateAndSave();
+        });
+    }
+}
+
+/**
+ * 各種初期化ボタンおよび閉じるボタンのアクションを設定
+ */
+function setupButtons() {
+    const resetStatusBtn = document.getElementById('btn-debug-reset-status');
+    if (resetStatusBtn) {
+        resetStatusBtn.addEventListener('click', () => {
+            try {
+                resetPlayerStatus();
+                syncDebugPanelFromData();
+                safeUpdateAndSave();
+                safeShowMsg("能力値を初期化しました");
+            } catch (err) {
+                console.error('[Debug] resetPlayerStatus 実行エラー:', err);
+            }
+        });
+    }
+
+    const resetProgressBtn = document.getElementById('btn-debug-reset-progress');
+    if (resetProgressBtn) {
+        resetProgressBtn.addEventListener('click', () => {
+            try {
+                resetGameProgress();
+                // マップのアンロック進捗を即座に再描画・更新
+                if (MapSystem && typeof MapSystem.updateMapState === 'function') {
+                    MapSystem.updateMapState();
+                } else if (MapSystem && typeof MapSystem.updateUnlockState === 'function') {
+                    MapSystem.updateUnlockState();
+                }
+                syncDebugPanelFromData();
+                safeUpdateAndSave();
+                safeShowMsg("盤上進捗を初期化しました");
+            } catch (err) {
+                console.error('[Debug] resetGameProgress 実行エラー:', err);
+            }
+        });
+    }
+
+    const closeBtn = document.getElementById('btn-debug-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            const debugPanel = document.getElementById('debug-menu-panel');
+            if (debugPanel) {
+                debugPanel.style.display = 'none';
+                STATE.debugMenuOpen = false;
+                STATE.isDebugMode = false;
+            }
+        });
+    }
 }
 
 /**
@@ -71,16 +265,23 @@ function handleKeyDown(event) {
     if (inputQueue.join('') === DEBUG_SEQUENCE) {
         // ステータスを極限化
         PLAYER.hp = 9999;
+        PLAYER.maxHp = 9999;
         PLAYER.power = 100;
         PLAYER.fireRate = 50;
         PLAYER.speed = 1.2;
         STATE.score = 999999; 
 
         STATE.isDebugMode = true;
+        STATE.debugMenuOpen = true;
 
-        // UI更新、セーブ、メッセージ表示を安全に実行
+        const debugPanel = document.getElementById('debug-menu-panel');
+        if (debugPanel) {
+            debugPanel.style.display = 'flex';
+        }
+
+        syncDebugPanelFromData();
         safeUpdateAndSave();
-        safeShowMsg('デバッグモード：有効化（ステータス最大）');
+        safeShowMsg('神変不可思議（全能力極限解放）');
 
         inputQueue = []; // 判定バッファをクリア
         return;
@@ -89,21 +290,20 @@ function handleKeyDown(event) {
     // --- 無敵モード（G キー） ---
     if (event.key === 'g' || event.key === 'G') {
         STATE.isGodMode = !STATE.isGodMode;
-
         const msg = STATE.isGodMode ? '無敵：有効' : '無敵：無効';
         safeShowMsg(msg);
+        syncDebugPanelFromData();
+        safeUpdateAndSave();
     }
 
     // --- 敵一括撃破（K キー） ---
     if (event.key === 'k' || event.key === 'K') {
         if (STATE.enemies && Array.isArray(STATE.enemies) && STATE.enemies.length > 0) {
-            // 配列の整合性を保ち、インデックス崩れを防ぐためコピーを作成して処理
             const activeEnemies = [...STATE.enemies];
 
             activeEnemies.forEach(enemy => {
                 if (!enemy) return;
 
-                // 1. 撃破・ダメージ処理の呼び出し
                 if (typeof enemy.takeHit === 'function') {
                     try {
                         enemy.takeHit(999999);
@@ -112,16 +312,13 @@ function handleKeyDown(event) {
                     }
                 }
 
-                // 2. ボス判定
                 const isBoss = (enemy.type === '王' || enemy.type === 'キング' || enemy.type === 'K' || enemy.type === 'ヨット' || enemy.type === 'Yacht');
                 
-                // 3. スコアの加算
                 if (typeof STATE.score !== 'number') {
                     STATE.score = 0;
                 }
                 STATE.score += isBoss ? 10000 : 200;
 
-                // 4. 確率に応じたアイテムドロップ処理
                 const dropProb = isBoss ? 1.0 : 0.3;
                 if (Math.random() < dropProb && STATE.items) {
                     try {
@@ -133,7 +330,6 @@ function handleKeyDown(event) {
                     }
                 }
 
-                // 5. 3Dシーンからの安全な削除
                 if (STATE.scene && enemy.mesh) {
                     try {
                         STATE.scene.remove(enemy.mesh);
@@ -142,7 +338,6 @@ function handleKeyDown(event) {
                     }
                 }
 
-                // 6. メモリリーク（ゾンビオブジェクト化）を防ぐための完全解放処理
                 if (typeof enemy.destroy === 'function') {
                     try {
                         enemy.destroy();
@@ -152,11 +347,10 @@ function handleKeyDown(event) {
                 }
             });
 
-            // 参照を破壊せずに敵リストを安全にクリア
             STATE.enemies.length = 0;
-
+            syncDebugPanelFromData();
             safeUpdateAndSave();
-            safeShowMsg('敵を一括撃破しました（リソース解放完了）');
+            safeShowMsg('敵を一括撃破しました');
         }
     }
 
@@ -165,56 +359,37 @@ function handleKeyDown(event) {
         safeCall('showStageClear');
     }
 
-    // --- ステータス個別変更機能（P キー） ---
+    // --- デバッグ専用画面の表示・非表示トグル（P キー） ---
     if (event.key === 'p' || event.key === 'P') {
-        const targetStat = prompt('変更したいステータスを入力してください (hp, power, fireRate, speed, score):');
-        if (targetStat) {
-            const lowerStat = targetStat.trim().toLowerCase();
-            const allowedStats = ['hp', 'power', 'fireRate', 'speed', 'score'];
-            
-            const exactStat = allowedStats.find(s => s.toLowerCase() === lowerStat);
-
-            if (exactStat) {
-                const currentValue = exactStat === 'score' ? (STATE.score !== undefined ? STATE.score : 0) : PLAYER[exactStat];
-                const valueStr = prompt(`${exactStat} に設定する数値を入力してください:`, currentValue);
-                
-                if (valueStr !== null) {
-                    const value = parseFloat(valueStr);
-                    if (!isNaN(value)) {
-                        if (exactStat === 'score') {
-                            STATE.score = value;
-                        } else {
-                            PLAYER[exactStat] = value;
-                        }
-
-                        safeUpdateAndSave();
-                        safeShowMsg(`${exactStat} を ${value} に変更しました`);
-                    } else {
-                        alert('無効な数値が入力されました。');
-                    }
-                }
-            } else {
-                alert('指定されたステータス名は存在しません。');
-            }
+        const debugPanel = document.getElementById('debug-menu-panel');
+        if (debugPanel) {
+            const isHidden = debugPanel.style.display === 'none' || debugPanel.style.display === '';
+            debugPanel.style.display = isHidden ? 'flex' : 'none';
+            STATE.debugMenuOpen = isHidden;
+            STATE.isDebugMode = isHidden;
+            syncDebugPanelFromData();
         }
+        event.preventDefault();
     }
 
     // --- 敵の動作停止機能（F キー） ---
     if (event.key === 'f' || event.key === 'F') {
         STATE.isEnemiesFrozen = !STATE.isEnemiesFrozen;
-
         const msg = STATE.isEnemiesFrozen ? '敵の動作：一時停止' : '敵の動作：通常';
         safeShowMsg(msg);
+        syncDebugPanelFromData();
+        safeUpdateAndSave();
     }
 
     // --- クリエイティブモード機能（C キー） ---
     if (event.key === 'c' || event.key === 'C') {
         STATE.isCreativeMode = !STATE.isCreativeMode;
-
         const msg = STATE.isCreativeMode 
-            ? 'クリエイティブモード：有効 (Spaceキーで上昇 / Cキーで下降)' 
+            ? 'クリエイティブモード：有効 (Spaceで上昇 / Cで下降)' 
             : 'クリエイティブモード：無効';
         safeShowMsg(msg);
+        syncDebugPanelFromData();
+        safeUpdateAndSave();
     }
 }
 
@@ -222,26 +397,32 @@ function handleKeyDown(event) {
  * デバッグ機能の初期化
  */
 function initDebugTools() {
-    // ログ出力（ヘルプメッセージ）
     console.log('%c[開発用プレビュー] デバッグツール起動完了', 'color: #00ff00; font-weight: bold;');
     console.log('--- デバッグショートカット一覧 ---');
     console.log('・d -> e -> b -> u -> g (順番に入力): 隠しデバッグ起動 (ステータス極限化)');
     console.log('・G キー: 無敵モードの切り替え (トグル)');
     console.log('・K キー: 盤上の全敵を撃破 (スコア獲得 ＆ リソースの完全解放)');
     console.log('・L キー: ステージを即時クリア');
-    console.log('・P キー: ステータスの個別数値変更');
+    console.log('・P キー: デバッグ調整板（#debug-menu-panel）の表示・非表示のトグル');
     console.log('・F キー: 敵の動作一時停止の切り替え (トグル)');
     console.log('・C キー: クリエイティブモード (自由移動) の切り替え (トグル)');
-    console.log('          ※有効時：Spaceキーで上昇、Cキーで下降など');
+    console.log('          ※有効時：Spaceキーで上昇、Cキーで下降');
     console.log('----------------------------------');
 
     // キーボードイベントの登録
     window.addEventListener('keydown', handleKeyDown);
+
+    // 各種スイッチ・スライダー・ボタンの設定
+    setupSwitches();
+    setupSliders();
+    setupButtons();
+
+    // 起動時の初期データ同期
+    syncDebugPanelFromData();
 }
 
 /**
  * ページの読み込み完了タイミングに応じた制御
- * すでにロードが完了している場合は即座に初期化し、ロード中の場合は 'load' イベント後に実行します
  */
 if (document.readyState === 'complete') {
     initDebugTools();
