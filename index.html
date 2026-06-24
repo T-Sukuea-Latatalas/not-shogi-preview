@@ -157,23 +157,24 @@
                         <div class="node-icon">王</div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- 吹き出しおよび座標追従制御に対応したステージ情報パネル -->
-        <div id="stage-info-panel" style="display: none;">
-            <div class="panel-header">
-                <h3 id="info-stage-name"></h3>
-            </div>
-            <div class="panel-body">
-                <div class="enemy-list-container">
-                    <h4>対峙する敵：</h4>
-                    <ul id="info-enemy-list"></ul>
+                <!-- 吹き出しおよび座標追従制御に対応したステージ情報パネル -->
+                <!-- マップスクロールに追従させるため、#map-container の直下（#map-nodes-container の後）に移動 -->
+                <div id="stage-info-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h3 id="info-stage-name"></h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="enemy-list-container">
+                            <h4>対峙する敵：</h4>
+                            <ul id="info-enemy-list"></ul>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button id="stage-start-btn" class="menu-btn start-btn">対局開始</button>
+                        <button id="stage-back-btn" class="menu-btn back-btn">戻る</button>
+                    </div>
                 </div>
-            </div>
-            <div class="panel-footer">
-                <button id="stage-start-btn" class="menu-btn start-btn">対局開始</button>
-                <button id="stage-back-btn" class="menu-btn back-btn">戻る</button>
             </div>
         </div>
 
