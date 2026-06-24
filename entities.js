@@ -291,6 +291,7 @@ export class Enemy {
     constructor(type, waveScale = 1.0) {
         this.type = type;
         this.alive = true;
+        this._destroyed = false; // 二重破棄および早期リターンバグを防ぐ内部管理フラグ
         
         const chessTypes = ['ポーン', 'ナイト', 'ビショップ', 'ルーク', 'クイーン', 'キング', 'P', 'N', 'B', 'R', 'Q', 'K'];
         let geom = null;
@@ -832,7 +833,8 @@ export class Enemy {
         this.hp -= dmg;
         this.setEmissiveColor(0xffffff, 2.0);
         setTimeout(() => { 
-            if (this.alive) {
+            // 破棄済み、またはすでに非生存状態なら自己発光更新処理をスキップ（Null Referenceを防ぐ）
+            if (this.alive && !this._destroyed) {
                 this.setEmissiveColor(0x000000, 1.0);
             }
         }, 100);
@@ -1363,16 +1365,28 @@ export class Enemy {
     }
 
     destroy() {
-        if (!this.alive) return;
+        // 二重破棄を確実に抑止するガード条件
+        if (this._destroyed) return;
+        this._destroyed = true;
         this.alive = false;
+
+        // 破棄または死亡時に、発光色をシーン削除前に確実にリセット
+        this.setEmissiveColor(0x000000, 1.0);
+
         if (this.type === 'ヨット' || this.type === 'Yacht') {
             this.clearYachtDiceMeshes();
         }
+        
+        // シーンからメッシュを確実に削除
         if (STATE && STATE.scene && this.mesh) {
             STATE.scene.remove(this.mesh);
         }
+        
+        // 3Dリソース（ジオメトリ、マテリアル）の確実なクリーンアップ
         if (this.mesh) {
-            if (this.mesh.geometry) this.mesh.geometry.dispose();
+            if (this.mesh.geometry) {
+                this.mesh.geometry.dispose();
+            }
             if (this.mesh.material) {
                 if (Array.isArray(this.mesh.material)) {
                     this.mesh.material.forEach(m => { if (m) m.dispose(); });
@@ -1380,6 +1394,8 @@ export class Enemy {
                     this.mesh.material.dispose();
                 }
             }
+            this.mesh = null; // メモリリークを防ぐため参照をヌル化
         }
+        this.mats = null; // 非同期タイマーエラーを防ぐためマテリアルリスト参照も解放
     }
 }
