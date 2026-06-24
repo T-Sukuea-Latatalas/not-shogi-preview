@@ -21,6 +21,14 @@
     --color-washi: #f5f2eb;
     --color-washi-dark: #eae5da;
     --color-washi-dim: #c8c2b5;
+
+    /* 難易度別和風カラー */
+    --color-easy-green: #2d5a27;       /* 常盤色・深緑（初級） */
+    --color-easy-green-light: #5b8c5a;
+    --color-medium-bronze: #a05a2c;    /* 渋い橙・赤銅（中級） */
+    --color-medium-bronze-light: #d49a37;
+    --color-hard-vermillion: #9e2a2b;  /* 本朱・格式高い赤（上級） */
+    --color-hard-vermillion-light: #c93a20;
 }
 
 /* ==========================================================================
@@ -782,8 +790,11 @@ canvas {
     left: 0;
     width: 100vw;
     height: 100vh;
-    /* 古地図・絵巻物を開いたかのような、静寂を感じる暗滅の幽玄セピア調グラデーション */
-    background: radial-gradient(circle, #2a231d 0%, #171411 75%, #0b0a09 100%);
+    /* デフォルト（デスクトップ・横画面）の和風古地図背景 */
+    background-image: url('横画面背景.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     z-index: 2050;
     display: none;
     flex-direction: row;
@@ -793,6 +804,13 @@ canvas {
     color: var(--color-washi);
     box-sizing: border-box;
     pointer-events: auto;
+}
+
+/* 端末の向きが縦（ポートレート）の場合の背景画像切り替え設定 */
+@media (orientation: portrait) {
+    #stage-select-menu {
+        background-image: url('縦画面背景.png') !important;
+    }
 }
 
 /* 霞がかった情緒あるエフェクト用の擬似要素 */
@@ -947,78 +965,180 @@ canvas {
     border: 1px solid #2e2620;
 }
 
-/* 未開放 */
+/* ==========================================================================
+   8-A. 難易度別のアイコン色分けスタイル ( node-easy, node-medium, node-hard )
+   ========================================================================== */
+/* 
+   map-system.jsからのインライン指定競合を上書きするために !important を適用。
+   ゲーム全体の和モダンな色相（常磐色・赤銅山吹・本朱金箔）と調和します。
+*/
+
+/* 初級（node-easy）：常磐色（深緑）と和紙の静寂 */
+.stage-node.node-easy .node-icon {
+    background: var(--color-washi) !important;
+    color: var(--color-easy-green) !important;
+    border: 1.5px solid var(--color-easy-green-light) !important;
+}
+.stage-node.node-easy.unlocked .node-icon {
+    background: var(--color-sumi-urushi-light) !important;
+    color: var(--color-easy-green-light) !important;
+    border: 1.5px dashed var(--color-easy-green-light) !important;
+}
+.stage-node.node-easy.cleared .node-icon {
+    background: var(--color-easy-green) !important;
+    color: var(--color-washi) !important;
+    border: 1.5px solid var(--color-chinkin-dark) !important;
+}
+.stage-node.node-easy.active .node-icon {
+    background: var(--color-easy-green) !important;
+    color: var(--color-washi) !important;
+    border: 2.5px solid var(--color-chinkin) !important;
+    box-shadow: 0 0 16px rgba(45, 90, 39, 0.75) !important;
+}
+
+/* 中級（node-medium）：赤銅（ブロンズ・山吹）の格式 */
+.stage-node.node-medium .node-icon {
+    background: var(--color-washi) !important;
+    color: var(--color-medium-bronze) !important;
+    border: 1.5px solid var(--color-medium-bronze-light) !important;
+}
+.stage-node.node-medium.unlocked .node-icon {
+    background: var(--color-sumi-urushi-light) !important;
+    color: var(--color-medium-bronze-light) !important;
+    border: 1.5px dashed var(--color-medium-bronze-light) !important;
+}
+.stage-node.node-medium.cleared .node-icon {
+    background: var(--color-medium-bronze) !important;
+    color: var(--color-washi) !important;
+    border: 1.5px solid var(--color-chinkin-dark) !important;
+}
+.stage-node.node-medium.active .node-icon {
+    background: var(--color-medium-bronze) !important;
+    color: var(--color-washi) !important;
+    border: 2.5px solid var(--color-chinkin) !important;
+    box-shadow: 0 0 16px rgba(160, 90, 44, 0.75) !important;
+}
+
+/* 上級（node-hard）：本朱・印泥と絢爛な金箔 */
+.stage-node.node-hard .node-icon {
+    background: var(--color-washi) !important;
+    color: var(--color-hard-vermillion) !important;
+    border: 1.5px solid var(--color-hard-vermillion-light) !important;
+}
+.stage-node.node-hard.unlocked .node-icon {
+    background: var(--color-sumi-urushi-light) !important;
+    color: var(--color-hard-vermillion-light) !important;
+    border: 1.5px dashed var(--color-hard-vermillion-light) !important;
+}
+.stage-node.node-hard.cleared .node-icon {
+    background: var(--color-hard-vermillion) !important;
+    color: var(--color-washi) !important;
+    border: 1.5px solid var(--color-chinkin) !important;
+}
+.stage-node.node-hard.active .node-icon {
+    background: var(--color-hard-vermillion) !important;
+    color: var(--color-chinkin-pale) !important;
+    border: 2.5px solid var(--color-chinkin) !important;
+    box-shadow: 0 0 16px rgba(158, 42, 43, 0.8) !important;
+}
+
+/* 未開放（locked）：かすみ霧の向こうのモノトーン */
 .stage-node.locked {
     cursor: not-allowed;
-    opacity: 0.4;
+    opacity: 0.35 !important;
 }
-
 .stage-node.locked .node-icon {
-    background: #0d0c0b;
-    color: #443c35;
-    border-color: #1a1512;
+    background: rgba(13, 12, 11, 0.85) !important;
+    color: rgba(139, 122, 102, 0.25) !important;
+    border: 1.2px solid rgba(139, 122, 102, 0.15) !important;
+    box-shadow: none !important;
 }
 
-/* 開放済み */
-.stage-node.unlocked .node-icon {
-    background: var(--color-sumi-urushi);
-    color: var(--color-chinkin-pale);
-    border: 1px solid var(--color-honshu); /* 本朱塗りの外枠 */
+/* ==========================================================================
+   8-B. 吹き出し型ステージ情報パネルのデザイン変更
+   ========================================================================== */
+/* ふわりと浮き出てアバターに追従するイージングアニメーション */
+@keyframes float-up {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -95%) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -100%) scale(1);
+    }
 }
 
-/* クリア済み */
-.stage-node.cleared .node-icon {
-    background: var(--color-honshu); /* 本朱塗り */
-    color: var(--color-washi);
-    border: 1px solid var(--color-chinkin); /* 金箔縁 */
-}
-
-/* 選択中 */
-.stage-node.active .node-icon {
-    background: var(--color-chinkin); /* 金箔 */
-    color: var(--color-sumi-urushi-dark);
-    border: 1px solid var(--color-washi);
-}
-
-/* マップ詳細情報パネル */
 #stage-info-panel {
+    /* 右上固定を完全に廃止し、ステージアイコン追従位置へ絶対配置 */
     position: absolute;
-    right: 24px;
-    top: 24px;
-    width: 340px;
-    max-height: calc(100% - 48px);
-    background: rgba(19, 17, 16, 0.97); /* 墨漆 */
+    width: 320px;
+    background: rgba(19, 17, 16, 0.98); /* 墨漆 */
     border: 3px double var(--color-chinkin); /* 金箔二重枠 */
-    border-radius: 1px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
-    padding: 24px;
+    border-radius: 2px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    z-index: 100;
+    z-index: 1000;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-sizing: border-box;
     pointer-events: auto;
+    
+    /* 選択マスから直接沸き立つようなポップアップ挙動の適用 */
+    animation: float-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: bottom center;
+}
+
+/* 吹き出しの三角形矢印：沈金二重線と墨漆背景に綺麗に同調 */
+#stage-info-panel::before,
+#stage-info-panel::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-style: solid;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* 外側の三角形（枠線同調：沈金の金色） */
+#stage-info-panel::before {
+    border-width: 15px 15px 0 15px;
+    border-color: var(--color-chinkin) transparent transparent transparent;
+    bottom: -15px;
+    z-index: 99;
+}
+
+/* 内側の三角形（背景同調：漆黒の墨漆） */
+#stage-info-panel::after {
+    border-width: 11px 11px 0 11px;
+    border-color: rgba(19, 17, 16, 0.98) transparent transparent transparent;
+    bottom: -11px;
+    z-index: 100;
 }
 
 .panel-header h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 14px 0;
     color: var(--color-chinkin-pale);
-    font-size: 19px;
+    font-size: 17px;
     border-bottom: 2px solid var(--color-honshu); /* 漆朱の下線 */
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     text-align: center;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
 }
 
 .panel-body {
     flex-grow: 1;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     overflow-y: auto;
 }
 
 .enemy-list-container h4 {
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
     font-size: 13px;
     color: var(--color-chinkin-pale);
     letter-spacing: 0.15em;
@@ -1031,12 +1151,12 @@ canvas {
 }
 
 #info-enemy-list li {
-    padding: 8px 14px;
-    margin-bottom: 8px;
+    padding: 6px 12px;
+    margin-bottom: 6px;
     background: rgba(13, 12, 11, 0.9);
     border: 1px solid rgba(197, 160, 89, 0.15);
     border-radius: 1px;
-    font-size: 14px;
+    font-size: 13px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1046,15 +1166,15 @@ canvas {
 .panel-footer {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .menu-btn {
     width: 100%;
-    padding: 14px;
+    padding: 12px;
     border-radius: 1px;
     font-weight: bold;
-    font-size: 15px;
+    font-size: 14px;
     cursor: pointer;
     border: none;
     transition: background-color 0.3s, transform 0.1s;
@@ -1254,38 +1374,89 @@ canvas {
         font-size: 0.75rem;
     }
 
-    /* すごろくマップ画面の上下分割レイアウト化 */
+    /* 
+       すごろくマップ画面の上下分割レイアウト化。
+       モバイルでも絵巻物古地図が見やすく操作しやすいよう最適化します。
+    */
     #stage-select-menu {
-        flex-direction: column;
-        justify-content: flex-start;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
     }
 
     .map-viewport {
-        flex: 1;
-        height: 60vh; 
-        position: relative;
+        flex: none !important;
+        height: 60vh !important; 
+        position: relative !important;
     }
 
-    /* すごろくマップ詳細パネル調整（下部にドッキング） */
+    /* 
+       要件1: タッチ操作用の矢印キー見切れ対策
+       コントローラーが下部の固定詳細パネル(40vh)と被らず、かつ画面外に見切れないよう、
+       マップ側 viewport領域内の最下部に余白を確保して浮遊配置します。
+    */
+    #map-touch-controls {
+        position: absolute !important;
+        left: 16px !important;
+        bottom: calc(40vh + 16px) !important; /* ドッキングした詳細パネル(40vh)の直上に確実に配置 */
+        z-index: 1100 !important; 
+        background: rgba(19, 17, 16, 0.95) !important;
+        border: 1px solid var(--color-chinkin) !important;
+        padding: 8px !important;
+        border-radius: 4px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.75) !important;
+        pointer-events: auto !important;
+    }
+
+    /* 指の押しやすさを考慮した最適サイズ（潰れや見切れを防止） */
+    .controller-pad {
+        width: 125px !important;
+        height: 125px !important;
+        gap: 6px !important;
+    }
+
+    .ctrl-btn {
+        font-size: 15px !important;
+        border-width: 1px !important;
+    }
+
+    #ctrl-ok {
+        font-size: 10px !important;
+    }
+
+    /* 
+       要件4: 吹き出し型情報パネルをモバイル縦画面時に下部ドッキングへ切り替え
+       モバイルの小さな画面で吹き出し表示にするとアバターやルート接続線が見えなくなるため、
+       メディアクエリ内では絶対吹き出し表示を上書きし、底面に固定ドッキング表示へ切り替えます。
+       吹き出しの三角形疑似要素は不要になるため display: none で非表示にします。
+    */
     #stage-info-panel {
-        position: relative;
-        right: auto;
-        bottom: auto;
-        top: auto;
-        width: 100%;
-        height: 40vh; 
-        max-height: 40vh;
-        margin: 0;
-        padding: 12px 16px;
-        border-left: none;
-        border-right: none;
-        border-bottom: none;
-        border-top: 3px double var(--color-chinkin); /* 上部の金箔枠 */
-        background: var(--color-sumi-urushi);
-        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.75);
-        display: flex;
-        flex-direction: column;
-        pointer-events: auto;
+        position: relative !important;
+        right: auto !important;
+        bottom: auto !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 40vh !important; 
+        max-height: 40vh !important;
+        margin: 0 !important;
+        padding: 12px 16px !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        border-top: 3px double var(--color-chinkin) !important;
+        background: var(--color-sumi-urushi) !important;
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.75) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        pointer-events: auto !important;
+        animation: none !important; /* 吹き出し用のポップアップアニメーションを無効化 */
+    }
+
+    /* 下部の三角形矢印をモバイルドッキング時に完全に非表示 */
+    #stage-info-panel::before,
+    #stage-info-panel::after {
+        display: none !important;
     }
 
     .panel-body {
@@ -1311,31 +1482,5 @@ canvas {
         padding: 10px;
         font-size: 13px;
         flex: 1;
-    }
-
-    #map-touch-controls {
-        position: absolute;
-        left: 12px;
-        bottom: 12px;
-        z-index: 110; 
-        background: rgba(19, 17, 16, 0.95);
-        border: 1px solid var(--color-chinkin-dark);
-        padding: 6px;
-        pointer-events: auto;
-    }
-
-    .controller-pad {
-        width: 110px;
-        height: 110px;
-        gap: 4px;
-    }
-
-    .ctrl-btn {
-        font-size: 14px;
-        border-width: 1px;
-    }
-
-    #ctrl-ok {
-        font-size: 9px;
     }
 }
