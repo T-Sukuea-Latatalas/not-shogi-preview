@@ -46,7 +46,7 @@ function initGame() {
     // 幽玄で情緒ある和の宵闇「一刻（マジックアワー）」を再現する色彩設計
     const skyColor = 0x0f0817;         // 深遠な宵闇（濃紺紫）
     const fogColor = 0x0f0817;         // 宵闇に融ける霞フォグ
-    const sunColor = 0xfc4118;         // 落ちゆく太陽の劇的な茜朱
+    const sunColor = 0xfc4118;         // 落ちゆく太陽 of 劇的な茜朱
     const sunIntensity = 2.2;          // 鮮烈な陰影をつくる強めの光
     const ambientColor = 0x1d132b;     // 夜が支配する静まり返った藤影
     const ambientIntensity = 0.4;      // ほのかな陰影を醸す環境光
@@ -1035,8 +1035,10 @@ function animate() {
     moveDir.normalize();
 
     // タッチデバイス仮想パッド補正
+    // joystickVector.y がマイナス（前に倒した）の時に Z 方向がマイナス（前方向）に進むよう、
+    // moveDir.z への代入時に付与されていた不要なマイナス符号（-joystickVector.y）を修正しました。
     if (joystickVector && (joystickVector.x !== 0 || joystickVector.y !== 0)) {
-        moveDir.set(joystickVector.x, 0, -joystickVector.y);
+        moveDir.set(joystickVector.x, 0, joystickVector.y);
     }
 
     const camEuler = new THREE.Euler(0, STATE.camera.rotation.y, 0, 'YXZ');
