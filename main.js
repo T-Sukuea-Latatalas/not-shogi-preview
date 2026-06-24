@@ -44,7 +44,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
  */
 function initGame() {
     // 幽玄で情緒ある和の宵闇（薄明かりの藍色空）を再現する色彩設計
-    const skyColor = 0x112233;         // 情緒ある深い瑠璃色・藍鉄の空
+    const skyColor = 0x112233;         // 情緒ある深い瑠璃色・藍鉄 of 空
     const fogColor = 0x112233;         // 瑠璃紺に融ける霞フォグ
     const sunColor = 0xfff3da;         // 柔らかな月明かり・灯火調の温かい白金
     const sunIntensity = 1.2;          // 自然な陰影を落とす上品な光
@@ -99,10 +99,10 @@ function initGame() {
     STATE.sun.shadow.camera.near = 0.5;
     STATE.sun.shadow.camera.far = 200;
     const d = 60;
-    STATE.sun.shadow.camera.left = -d;
-    STATE.sun.shadow.camera.right = d;
-    STATE.sun.shadow.camera.top = d;
-    STATE.sun.shadow.camera.bottom = -d;
+    STATE.sun.shadow.shadow.camera.left = -d;
+    STATE.sun.shadow.shadow.camera.right = d;
+    STATE.sun.shadow.shadow.camera.top = d;
+    STATE.sun.shadow.shadow.camera.bottom = -d;
     STATE.sun.shadow.bias = -0.0005;
     STATE.scene.add(STATE.sun);
 
@@ -354,11 +354,12 @@ function initGame() {
 
     // 進行度（クリア済みインデックス配列）を外部および MapSystem に返す
     window.getClearedStages = function() {
-        const clearedNums = getClearedStages();
+        const clearedNums = getClearedStages().map(num => Number(num));
         const clearedIndices = [];
         if (STATE.stages) {
             STATE.stages.forEach((stg, idx) => {
-                if (clearedNums.includes(stg.stage)) {
+                const stageNum = Number(stg.stage);
+                if (clearedNums.includes(stageNum)) {
                     clearedIndices.push(idx);
                 }
             });
@@ -887,7 +888,9 @@ function pauseGame() {
     if (STATE.shopOpen) {
         STATE.shopOpen = false;
         const shopMenu = document.getElementById('shop-menu');
-        if (shopMenu) shopMenu.style.display = 'none';
+        if (shopMenu) {
+            shopMenu.style.display = 'none';
+        }
     }
     STATE.isPaused = true;
     const pauseMenu = document.getElementById('pause-menu');
