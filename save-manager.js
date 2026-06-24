@@ -17,12 +17,14 @@ export function loadPlayerData() {
                 if (data.player.speed !== undefined) PLAYER.speed = data.player.speed;
                 if (data.player.power !== undefined) PLAYER.power = data.player.power;
                 if (data.player.fireRate !== undefined) PLAYER.fireRate = data.player.fireRate;
+                if (data.player.regen !== undefined) PLAYER.regen = data.player.regen;
             }
             if (data.upgradeCosts) {
                 if (data.upgradeCosts.power !== undefined) UPGRADE_COSTS.power = data.upgradeCosts.power;
                 if (data.upgradeCosts.rate !== undefined) UPGRADE_COSTS.rate = data.upgradeCosts.rate;
                 if (data.upgradeCosts.speed !== undefined) UPGRADE_COSTS.speed = data.upgradeCosts.speed;
                 if (data.upgradeCosts.hp !== undefined) UPGRADE_COSTS.hp = data.upgradeCosts.hp;
+                if (data.upgradeCosts.regen !== undefined) UPGRADE_COSTS.regen = data.upgradeCosts.regen;
             }
         }
     } catch (e) {
@@ -43,13 +45,15 @@ export function savePlayerData() {
                 maxHp: PLAYER.maxHp,
                 speed: PLAYER.speed,
                 power: PLAYER.power,
-                fireRate: PLAYER.fireRate
+                fireRate: PLAYER.fireRate,
+                regen: PLAYER.regen
             },
             upgradeCosts: {
                 power: UPGRADE_COSTS.power,
                 rate: UPGRADE_COSTS.rate,
                 speed: UPGRADE_COSTS.speed,
-                hp: UPGRADE_COSTS.hp
+                hp: UPGRADE_COSTS.hp,
+                regen: UPGRADE_COSTS.regen
             }
         };
         localStorage.setItem('non_shogi_player_data', JSON.stringify(data));
@@ -128,7 +132,7 @@ export function getUnlockedPieces() {
 
 /**
  * 指定された能力のアップグレードを処理します。
- * @param {string} type アップグレード対象の種類 ('power', 'rate', 'speed', 'hp')
+ * @param {string} type アップグレード対象の種類 ('power', 'rate', 'speed', 'hp', 'regen')
  */
 export function upgrade(type) {
     if (STATE.score < UPGRADE_COSTS[type]) {
@@ -148,6 +152,8 @@ export function upgrade(type) {
     } else if (type === 'hp') {
         PLAYER.maxHp += 50;
         PLAYER.hp += 50;
+    } else if (type === 'regen') {
+        PLAYER.regen += 1;
     }
 
     // 必要コストの上昇（1.5倍にして端数切り捨て）
@@ -180,6 +186,7 @@ export function activateDebugMode() {
     PLAYER.power = 100;
     PLAYER.fireRate = 50;
     PLAYER.speed = 1.2;
+    PLAYER.regen = 10;
     STATE.score = 999999;
 
     if (typeof window.showMsg === 'function') {
@@ -189,4 +196,54 @@ export function activateDebugMode() {
         window.updateUI();
     }
     savePlayerData();
+}
+
+/**
+ * プレイヤーの能力、所持銭、アップグレードコストをデフォルト初期状態に戻し保存します。
+ */
+export function resetPlayerStatus() {
+    try {
+        // 各種プレイヤー能力および所持銭の初期化
+        STATE.score = 0;
+        PLAYER.maxHp = 100;
+        PLAYER.hp = 100;
+        PLAYER.speed = 0.5;
+        PLAYER.power = 1;
+        PLAYER.fireRate = 300;
+        PLAYER.regen = 0;
+
+        // 各種アップグレードコストの初期化
+        UPGRADE_COSTS.power = 500;
+        UPGRADE_COSTS.rate = 800;
+        UPGRADE_COSTS.speed = 400;
+        UPGRADE_COSTS.hp = 600;
+        UPGRADE_COSTS.regen = 700;
+
+        // データの保存
+        savePlayerData();
+
+        // 画面UIの即時更新
+        if (typeof window.updateUI === 'function') {
+            window.updateUI();
+        }
+    } catch (e) {
+        console.error("プレイヤー能力の初期化に失敗しました:", e);
+    }
+}
+
+/**
+ * ゲームのステージクリア状況（進捗データ）を完全に初期化します。
+ */
+export function resetGameProgress() {
+    try {
+        // 進捗キーを完全に削除
+        localStorage.removeItem('non_shogi_progress');
+        
+        // 画面表示やマップ状態の更新がある場合は安全に実行
+        if (typeof window.updateUI === 'function') {
+            window.updateUI();
+        }
+    } catch (e) {
+        console.error("ゲーム進捗の初期化に失敗しました:", e);
+    }
 }
