@@ -61,13 +61,96 @@ export class InputHandler {
         let debugIndex = 0;
 
         window.addEventListener('keydown', e => {
-            this.keys[e.code] = true;
+            // テキスト入力欄など、文字入力を伴う要素にフォーカスがある場合はキー判定を無効化
+            if (
+                e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.isContentEditable
+            ) {
+                return;
+            }
 
             const stageSelectMenu = document.getElementById('stage-select-menu');
             const isMapVisible = stageSelectMenu && stageSelectMenu.style.display !== 'none';
-            if (isMapVisible && this.callbacks.onMapMovement) {
-                this.callbacks.onMapMovement(e);
+
+            // 1. ステージ選択中（マップ表示中）の入力フィルタリング
+            if (isMapVisible) {
+                if (this.callbacks.onMapMovement) {
+                    this.callbacks.onMapMovement(e);
+                }
+                // マップ表示中でも、店メニュー（ショップ）のTabキー開閉は可能にする
+                if (e.code === 'Tab') {
+                    e.preventDefault();
+                    if (this.callbacks.onToggleShop) this.callbacks.onToggleShop();
+                }
+                // ショップが開いている場合のショートカット購入
+                if (STATE.shopOpen) {
+                    let upgradeIndex = -1;
+                    if (e.code === 'Digit1' || e.code === 'Numpad1') upgradeIndex = 0;
+                    else if (e.code === 'Digit2' || e.code === 'Numpad2') upgradeIndex = 1;
+                    else if (e.code === 'Digit3' || e.code === 'Numpad3') upgradeIndex = 2;
+                    else if (e.code === 'Digit4' || e.code === 'Numpad4') upgradeIndex = 3;
+                    else if (e.code === 'Digit5' || e.code === 'Numpad5') upgradeIndex = 4;
+
+                    if (upgradeIndex !== -1) {
+                        e.preventDefault();
+                        if (this.callbacks.onUpgradeByIndex) {
+                            this.callbacks.onUpgradeByIndex(upgradeIndex);
+                        }
+                    }
+                }
+                return; // マップ表示中は戦闘用の移動キーバッファ登録や通常のジャンプ入力を無効化
             }
+
+            // 2. 一時停止（ポーズ）中の入力フィルタリング
+            if (STATE.isPaused) {
+                if (e.code === 'Escape') {
+                    e.preventDefault();
+                    if (this.callbacks.onTogglePause) this.callbacks.onTogglePause();
+                }
+                if (e.code === 'Tab') {
+                    e.preventDefault();
+                    if (this.callbacks.onToggleShop) this.callbacks.onToggleShop();
+                }
+                // ショップが開いている場合のショートカット購入
+                if (STATE.shopOpen) {
+                    let upgradeIndex = -1;
+                    if (e.code === 'Digit1' || e.code === 'Numpad1') upgradeIndex = 0;
+                    else if (e.code === 'Digit2' || e.code === 'Numpad2') upgradeIndex = 1;
+                    else if (e.code === 'Digit3' || e.code === 'Numpad3') upgradeIndex = 2;
+                    else if (e.code === 'Digit4' || e.code === 'Numpad4') upgradeIndex = 3;
+                    else if (e.code === 'Digit5' || e.code === 'Numpad5') upgradeIndex = 4;
+
+                    if (upgradeIndex !== -1) {
+                        e.preventDefault();
+                        if (this.callbacks.onUpgradeByIndex) {
+                            this.callbacks.onUpgradeByIndex(upgradeIndex);
+                        }
+                    }
+                }
+                return; // 一時停止中は戦闘用の移動キーバッファ登録やジャンプ等のアクションを無視
+            }
+
+            // 3. 通常戦闘中のショップショートカットキー購入
+            if (STATE.shopOpen) {
+                let upgradeIndex = -1;
+                if (e.code === 'Digit1' || e.code === 'Numpad1') upgradeIndex = 0;
+                else if (e.code === 'Digit2' || e.code === 'Numpad2') upgradeIndex = 1;
+                else if (e.code === 'Digit3' || e.code === 'Numpad3') upgradeIndex = 2;
+                else if (e.code === 'Digit4' || e.code === 'Numpad4') upgradeIndex = 3;
+                else if (e.code === 'Digit5' || e.code === 'Numpad5') upgradeIndex = 4;
+
+                if (upgradeIndex !== -1) {
+                    e.preventDefault();
+                    if (this.callbacks.onUpgradeByIndex) {
+                        this.callbacks.onUpgradeByIndex(upgradeIndex);
+                    }
+                    return; // ショートカット処理時は戦闘用キーバッファへの登録をスキップ
+                }
+            }
+
+            // 4. 通常戦闘中のキーバッファ登録とアクション
+            this.keys[e.code] = true;
 
             if (e.code === 'Tab') {
                 e.preventDefault();
@@ -110,8 +193,7 @@ export class InputHandler {
         });
 
         window.addEventListener('mousedown', (e) => {
-            if (!STATE.stageActive || STATE.isGameOver || STATE.isPaused || STATE.introActive) return;
-
+            // 右クリックでのショップ購入処理（一時停止中や非戦闘ステージ選択中でも機能させる）
             if (e.button === 2) {
                 if (STATE.shopOpen && this.callbacks.onShopRightClick) {
                     this.callbacks.onShopRightClick();
@@ -119,7 +201,10 @@ export class InputHandler {
                 return;
             }
 
+            // 通常戦闘用のアクション判定
+            if (!STATE.stageActive || STATE.isGameOver || STATE.isPaused || STATE.introActive) return;
             if (STATE.shopOpen || this.currentTouchMode) return;
+
             if (!document.pointerLockElement) {
                 document.body.requestPointerLock();
                 return;
@@ -348,7 +433,7 @@ export class InputHandler {
 
         addSafeTouchStart('btn-shop', e => {
             e.preventDefault();
-            if (STATE.isGameOver || !STATE.stageActive || STATE.isPaused || STATE.introActive) return;
+            if (STATE.isGameOver || STATE.introActive) return;
             if (this.callbacks.onToggleShop) this.callbacks.onToggleShop();
         });
 
