@@ -1,5 +1,6 @@
 import { STATE, PLAYER, UPGRADE_COSTS, upgradeKeys } from './constants.js';
 import { resetPlayerStatus, resetGameProgress, savePlayerData } from './save-manager.js';
+import { MapSystem } from './map-system.js';
 
 export class UIManager {
     constructor(callbacks) {
@@ -130,6 +131,12 @@ export class UIManager {
         if (resetProgressBtn) {
             resetProgressBtn.addEventListener('click', () => {
                 resetGameProgress();
+                // 初期化された進捗をすごろくマップ上にも即時反映
+                if (MapSystem && typeof MapSystem.updateMapState === 'function') {
+                    MapSystem.updateMapState();
+                } else if (MapSystem && typeof MapSystem.updateUnlockState === 'function') {
+                    MapSystem.updateUnlockState();
+                }
                 this.updateUI();
                 this.showMsg("進捗を初期化しました");
             });
